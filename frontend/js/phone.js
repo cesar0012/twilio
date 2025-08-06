@@ -12,7 +12,7 @@ class TwilioPhone {
         this.isOnHold = false;
         this.callTimer = null;
         this.callStartTime = null;
-        this.backendUrl = 'http://oskc0c4k8c8800sko0go44oc.161.97.64.43.sslip.io'; // URL del backend Flask en VPS
+        this.backendUrl = 'https://twilio.neox.site'; // URL del backend Flask en VPS
         
         // Bind methods
         this.setupDevice = this.setupDevice.bind(this);
