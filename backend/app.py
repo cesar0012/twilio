@@ -132,26 +132,7 @@ def health_check():
     return jsonify({'status': 'OK', 'message': 'Servidor Twilio WebApp funcionando correctamente'})
 
 if __name__ == '__main__':
-    # Ejecutar en modo debug para desarrollo local
-    # Configuración para HTTPS con certificados autofirmados
-    import ssl
-    
-    # Crear contexto SSL para certificados autofirmados
-    context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE
-    
-    try:
-        # Intentar usar certificados si existen
-        context.load_cert_chain('cert.pem', 'key.pem')
-        print("[INFO] Usando certificados SSL existentes")
-        app.run(debug=True, host='0.0.0.0', port=5000, ssl_context=context)
-    except FileNotFoundError:
-        print("[WARNING] Certificados SSL no encontrados, generando certificados autofirmados...")
-        # Generar certificados autofirmados temporalmente
-        context = 'adhoc'  # Flask generará certificados temporales
-        app.run(debug=True, host='0.0.0.0', port=5000, ssl_context=context)
-    except Exception as e:
-        print(f"[ERROR] Error configurando SSL: {e}")
-        print("[INFO] Ejecutando en HTTP como fallback")
-        app.run(debug=True, host='0.0.0.0', port=5000)
+    # Ejecutar en HTTP normal - Coolify maneja HTTPS externamente
+    print("[INFO] Iniciando servidor Flask en HTTP (puerto 5000)")
+    print("[INFO] Coolify manejará HTTPS externamente")
+    app.run(debug=False, host='0.0.0.0', port=5000)
