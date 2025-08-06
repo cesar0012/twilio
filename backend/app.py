@@ -25,7 +25,9 @@ def generate_token():
     Genera un AccessToken de Twilio usando las credenciales enviadas desde el frontend
     """
     try:
+        print("[DEBUG] Recibida solicitud de token")
         data = request.get_json()
+        print(f"[DEBUG] Datos recibidos: {data}")
         
         # Extraer credenciales del request
         account_sid = data.get('accountSid')
@@ -34,10 +36,14 @@ def generate_token():
         twiml_app_sid = data.get('twimlAppSid')
         twilio_phone_number = data.get('twilioPhoneNumber')
         
+        print(f"[DEBUG] Credenciales extraídas - Account SID: {account_sid[:10]}..., API Key: {api_key_sid[:10]}..., TwiML App: {twiml_app_sid[:10]}..., Phone: {twilio_phone_number}")
+        
         # Validar que todas las credenciales estén presentes
         if not all([account_sid, api_key_sid, api_key_secret, twiml_app_sid, twilio_phone_number]):
+            print("[ERROR] Faltan credenciales requeridas")
             return jsonify({'error': 'Faltan credenciales requeridas'}), 400
         
+        print("[DEBUG] Creando AccessToken...")
         # Crear AccessToken
         token = AccessToken(
             account_sid,
@@ -46,21 +52,30 @@ def generate_token():
             identity=twilio_phone_number
         )
         
+        print("[DEBUG] Creando VoiceGrant...")
         # Crear VoiceGrant
         voice_grant = VoiceGrant(
             outgoing_application_sid=twiml_app_sid,
             incoming_allow=True
         )
         
+        print("[DEBUG] Agregando grant al token...")
         # Agregar el grant al token
         token.add_grant(voice_grant)
         
+        jwt_token = token.to_jwt()
+        print(f"[DEBUG] Token generado exitosamente. Longitud: {len(jwt_token)}")
+        
         return jsonify({
-            'token': token.to_jwt(),
+            'token': jwt_token,
             'identity': twilio_phone_number
         })
         
     except Exception as e:
+        print(f"[ERROR] Error generando token: {str(e)}")
+        print(f"[ERROR] Tipo de error: {type(e).__name__}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
         return jsonify({'error': f'Error generando token: {str(e)}'}), 500
 
 @app.route('/handle_calls', methods=['POST'])
@@ -70,10 +85,16 @@ def handle_calls():
     Genera TwiML apropiado según el tipo de llamada
     """
     try:
+        print("[DEBUG] Recibida solicitud en /handle_calls")
+        print(f"[DEBUG] Datos del formulario: {request.form}")
+        print(f"[DEBUG] Datos JSON: {request.get_json()}")
+        
         # Obtener parámetros de la llamada
         from_number = request.form.get('From')
         to_number = request.form.get('To')
         call_sid = request.form.get('CallSid')
+        
+        print(f"[DEBUG] Parámetros de llamada - From: {from_number}, To: {to_number}, CallSid: {call_sid}")
         
         # Crear respuesta TwiML
         response = VoiceResponse()

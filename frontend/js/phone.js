@@ -175,6 +175,28 @@ class TwilioPhone {
 
             this.currentCall = call;
             
+            // Configurar event listeners para esta llamada específica
+            call.on('accept', () => {
+                console.log('Llamada aceptada');
+                this.onCallConnected(call);
+            });
+            
+            call.on('disconnect', () => {
+                console.log('Llamada desconectada');
+                this.onCallDisconnected(call);
+            });
+            
+            call.on('cancel', () => {
+                console.log('Llamada cancelada');
+                this.onCallDisconnected(call);
+            });
+            
+            call.on('error', (error) => {
+                console.error('Error en la llamada:', error);
+                this.showError(`Error en la llamada: ${error.message}`);
+                this.updateStatus('Conectado', 'connected');
+            });
+            
         } catch (error) {
             console.error('Error realizando llamada:', error);
             this.showError(`Error: ${error.message}`);
