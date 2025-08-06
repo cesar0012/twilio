@@ -163,90 +163,30 @@ class TwilioPhone {
                         allowIncomingWhileBusy: false,
                         // Configurar codecs preferidos para mejor compatibilidad
                         codecPreferences: ['pcmu', 'opus'],
-                        // Configurar getUserMedia personalizado para manejar contextos HTTP
-                        getUserMedia: async (constraints) => {
-                            console.log('DEBUG: getUserMedia personalizado llamado con constraints:', constraints);
-                            
-                            // Si estamos en contexto HTTP, intentar con constraints mínimas
-                            if (location.protocol === 'http:') {
-                                console.log('DEBUG: Contexto HTTP detectado, usando constraints mínimas');
-                                try {
-                                    // Intentar con constraints básicas primero
-                                    const basicConstraints = {
-                                        audio: {
-                                            echoCancellation: true,
-                                            noiseSuppression: true,
-                                            autoGainControl: true
-                                        },
-                                        video: false
-                                    };
-                                    
-                                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                                        console.log('DEBUG: Intentando getUserMedia con constraints básicas');
-                                        return await navigator.mediaDevices.getUserMedia(basicConstraints);
-                                    } else {
-                                        console.log('DEBUG: mediaDevices no disponible, creando stream silencioso');
-                                        // Crear un stream de audio silencioso como fallback
-                                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                                        const oscillator = audioContext.createOscillator();
-                                        const gainNode = audioContext.createGain();
-                                        
-                                        oscillator.connect(gainNode);
-                                        gainNode.connect(audioContext.destination);
-                                        gainNode.gain.value = 0; // Silencioso
-                                        
-                                        const destination = audioContext.createMediaStreamDestination();
-                                        gainNode.connect(destination);
-                                        
-                                        oscillator.start();
-                                        
-                                        console.log('DEBUG: Stream silencioso creado exitosamente');
-                                        return destination.stream;
-                                    }
-                                } catch (error) {
-                                    console.log('DEBUG: Error en getUserMedia personalizado:', error);
-                                    throw error;
-                                }
-                            } else {
-                                // En contexto HTTPS, usar getUserMedia normal
-                                console.log('DEBUG: Contexto HTTPS, usando getUserMedia normal');
-                                return await navigator.mediaDevices.getUserMedia(constraints);
-                            }
-                        },
-                        // Configurar enumerateDevices personalizado
-                        enumerateDevices: async () => {
-                            console.log('DEBUG: enumerateDevices personalizado llamado');
-                            try {
-                                if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-                                    return await navigator.mediaDevices.enumerateDevices();
-                                } else {
-                                    console.log('DEBUG: enumerateDevices no disponible, retornando dispositivos por defecto');
-                                    // Retornar dispositivos por defecto
-                                    return [
-                                        {
-                                            deviceId: 'default',
-                                            kind: 'audioinput',
-                                            label: 'Default Microphone',
-                                            groupId: 'default'
-                                        },
-                                        {
-                                            deviceId: 'default',
-                                            kind: 'audiooutput',
-                                            label: 'Default Speaker',
-                                            groupId: 'default'
-                                        }
-                                    ];
-                                }
-                            } catch (error) {
-                                console.log('DEBUG: Error en enumerateDevices personalizado:', error);
-                                return [];
-                            }
-                        },
                         // Configuraciones adicionales para mejorar compatibilidad
                         disableAudioContextSounds: false,
                         logLevel: 'debug',
                         maxCallSignalingTimeoutMs: 30000
                     };
+                    
+                    // Solo agregar funciones personalizadas si estamos en contexto HTTPS
+                    // En HTTP, Twilio manejará los errores internamente
+                    if (location.protocol === 'https:') {
+                        console.log('DEBUG: Contexto HTTPS detectado, agregando funciones personalizadas');
+                        
+                        deviceOptions.getUserMedia = async (constraints) => {
+                            console.log('DEBUG: getUserMedia personalizado llamado con constraints:', constraints);
+                            return await navigator.mediaDevices.getUserMedia(constraints);
+                        };
+                        
+                        deviceOptions.enumerateDevices = async () => {
+                            console.log('DEBUG: enumerateDevices personalizado llamado');
+                            return await navigator.mediaDevices.enumerateDevices();
+                        };
+                    } else {
+                        console.log('DEBUG: Contexto HTTP detectado, usando configuración básica sin funciones personalizadas');
+                        console.log('DEBUG: Twilio manejará los errores de getUserMedia internamente');
+                    }
                     console.log('DEBUG: Opciones del dispositivo configuradas:', deviceOptions);
                     
                     // Configurar Twilio Device con el nuevo SDK (2.0+)
