@@ -1,0 +1,231 @@
+/* Estilos personalizados para Twilio WebApp */
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+#connection-status {
+    font-weight: 500;
+}
+
+/* Cards */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    font-weight: 600;
+}
+
+/* Formularios */
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Teclado de marcado */
+.keypad {
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.keypad-btn {
+    height: 60px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.keypad-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.keypad-btn:active {
+    transform: translateY(0);
+}
+
+/* Botones de llamada */
+#call-button {
+    background-color: #28a745;
+    border-color: #28a745;
+    transition: all 0.3s ease;
+}
+
+#call-button:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+    transform: scale(1.05);
+}
+
+#hangup-button {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    transition: all 0.3s ease;
+}
+
+#hangup-button:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+    transform: scale(1.05);
+}
+
+/* Estados de conexión */
+.status-connected {
+    color: #28a745 !important;
+}
+
+.status-disconnected {
+    color: #dc3545 !important;
+}
+
+.status-connecting {
+    color: #ffc107 !important;
+}
+
+/* Alertas personalizadas */
+.alert {
+    border-radius: 0.5rem;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Animaciones */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+/* Indicador de llamada activa */
+.call-active {
+    border: 2px solid #28a745;
+    background-color: #d4edda;
+}
+
+/* Indicador de llamada entrante */
+.call-incoming {
+    border: 2px solid #ffc107;
+    background-color: #fff3cd;
+    animation: pulse 1s infinite;
+}
+
+/* Controles de volumen y micrófono */
+.control-active {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.control-muted {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Timer de llamada */
+#call-timer {
+    font-family: 'Courier New', monospace;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #28a745;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 0.5rem;
+    }
+    
+    .keypad {
+        max-width: 250px;
+    }
+    
+    .keypad-btn {
+        height: 50px;
+        font-size: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Estados de botones */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Efectos de hover para botones principales */
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Indicadores de estado */
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.status-indicator.online {
+    background-color: #28a745;
+    box-shadow: 0 0 5px #28a745;
+}
+
+.status-indicator.offline {
+    background-color: #dc3545;
+}
+
+.status-indicator.connecting {
+    background-color: #ffc107;
+    animation: pulse 1s infinite;
+}

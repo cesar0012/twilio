@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twilio WebApp - Llamadas de Voz</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome para iconos -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Estilos personalizados -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Header -->
+            <div class="col-12">
+                <nav class="navbar navbar-dark bg-primary">
+                    <div class="container-fluid">
+                        <span class="navbar-brand mb-0 h1">
+                            <i class="fas fa-phone"></i> Twilio WebApp
+                        </span>
+                        <span class="navbar-text" id="connection-status">
+                            <i class="fas fa-circle text-danger"></i> Desconectado
+                        </span>
+                    </div>
+                </nav>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Panel de Configuración -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cog"></i> Configuración de Twilio</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="credentials-form">
+                            <div class="mb-3">
+                                <label for="accountSid" class="form-label">Account SID</label>
+                                <input type="text" class="form-control" id="accountSid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                            </div>
+                            <div class="mb-3">
+                                <label for="authToken" class="form-label">Auth Token</label>
+                                <input type="password" class="form-control" id="authToken" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                            </div>
+                            <div class="mb-3">
+                                <label for="apiKeySid" class="form-label">API Key SID</label>
+                                <input type="text" class="form-control" id="apiKeySid" placeholder="SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                            </div>
+                            <div class="mb-3">
+                                <label for="apiKeySecret" class="form-label">API Key Secret</label>
+                                <input type="password" class="form-control" id="apiKeySecret" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                            </div>
+                            <div class="mb-3">
+                                <label for="twimlAppSid" class="form-label">TwiML App SID</label>
+                                <input type="text" class="form-control" id="twimlAppSid" placeholder="APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                            </div>
+                            <div class="mb-3">
+                                <label for="twilioPhoneNumber" class="form-label">Número de Teléfono Twilio</label>
+                                <input type="tel" class="form-control" id="twilioPhoneNumber" placeholder="+1234567890">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-save"></i> Guardar y Conectar
+                            </button>
+                        </form>
+                        
+                        <hr>
+                        
+                        <div class="d-grid gap-2">
+                            <button id="connect-button" class="btn btn-success" disabled>
+                                <i class="fas fa-plug"></i> Conectar
+                            </button>
+                            <button id="disconnect-button" class="btn btn-warning" disabled>
+                                <i class="fas fa-unlink"></i> Desconectar
+                            </button>
+                            <button id="clear-credentials" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i> Limpiar Credenciales
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Estado -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6><i class="fas fa-info-circle"></i> Estado de la Conexión</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="status-messages">
+                            <p class="text-muted">Ingrese sus credenciales de Twilio para comenzar.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de Llamadas -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-phone-alt"></i> Centro de Llamadas</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Información de llamada actual -->
+                        <div id="call-info" class="alert alert-info d-none">
+                            <h6><i class="fas fa-phone-volume"></i> Llamada en Curso</h6>
+                            <p id="call-details">Conectado con: <span id="call-number"></span></p>
+                            <div id="call-timer">Duración: <span id="timer-display">00:00</span></div>
+                        </div>
+
+                        <!-- Llamada entrante -->
+                        <div id="incoming-call" class="alert alert-warning d-none">
+                            <h6><i class="fas fa-phone-plus"></i> Llamada Entrante</h6>
+                            <p>Llamada de: <span id="incoming-number"></span></p>
+                            <button id="accept-call" class="btn btn-success me-2">
+                                <i class="fas fa-phone"></i> Aceptar
+                            </button>
+                            <button id="reject-call" class="btn btn-danger">
+                                <i class="fas fa-phone-slash"></i> Rechazar
+                            </button>
+                        </div>
+
+                        <!-- Formulario de llamada saliente -->
+                        <div id="outgoing-call-form">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="input-group">
+                                        <input type="tel" class="form-control form-control-lg" id="phone-number" 
+                                               placeholder="Ingrese número de teléfono (+1234567890)">
+                                        <button id="call-button" class="btn btn-success btn-lg" disabled>
+                                            <i class="fas fa-phone"></i> Llamar
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <button id="hangup-button" class="btn btn-danger btn-lg w-100" disabled>
+                                        <i class="fas fa-phone-slash"></i> Colgar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Teclado de marcado -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6>Teclado de Marcado</h6>
+                                    <button id="dialpad-toggle" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-th"></i> Mostrar/Ocultar
+                                    </button>
+                                </div>
+                                <div id="dialpad-container" class="keypad mt-2">
+                                    <div class="row g-2">
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="1">1</button></div>
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="2">2 ABC</button></div>
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="3">3 DEF</button></div>
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="4">4 GHI</button></div>
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="5">5 JKL</button></div>
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="6">6 MNO</button></div>
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="7">7 PQRS</button></div>
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="8">8 TUV</button></div>
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="9">9 WXYZ</button></div>
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="*">*</button></div>
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="0">0</button></div>
+                                        <div class="col-4"><button class="btn btn-outline-primary w-100 keypad-btn" data-digit="#">#</button></div>
+                                    </div>
+                                    <div class="row g-2 mt-2">
+                                        <div class="col-6"><button id="clear-number" class="btn btn-outline-secondary w-100"><i class="fas fa-backspace"></i> Borrar</button></div>
+                                        <div class="col-6"><button id="clear-all" class="btn btn-outline-secondary w-100"><i class="fas fa-times"></i> Limpiar</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Controles de llamada -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h6>Controles de Llamada</h6>
+                                <div class="btn-group" role="group">
+                                    <button id="mute-button" class="btn btn-outline-warning" disabled>
+                                        <i class="fas fa-microphone"></i> Silenciar
+                                    </button>
+                                    <button id="hold-button" class="btn btn-outline-info" disabled>
+                                        <i class="fas fa-pause"></i> Retener
+                                    </button>
+                                    <button id="speaker-button" class="btn btn-outline-secondary" disabled>
+                                        <i class="fas fa-volume-up"></i> Altavoz
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <footer class="text-center text-muted">
+                    <p>&copy; 2024 Twilio WebApp - Aplicación de Llamadas de Voz</p>
+                    <p><small>Asegúrese de configurar ngrok y los webhooks de Twilio correctamente.</small></p>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Twilio Voice JS SDK (Local) -->
+    <script src="js/twilio.min.js"></script>
+    
+    <!-- Scripts personalizados -->
+    <script src="js/credentials.js"></script>
+    <script src="js/phone.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
