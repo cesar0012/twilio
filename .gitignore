@@ -51,6 +51,7 @@ ehthumbs.db
 Thumbs.db
 
 # Logs
+log.txt
 *.log
 logs/
 
