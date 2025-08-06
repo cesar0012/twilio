@@ -1,31 +1,19 @@
-# Usar una imagen de Python más completa con herramientas de construcción
+# Usamos una imagen oficial y ligera de Python
 FROM python:3.11-slim
 
-# Instalar herramientas de construcción necesarias
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    gcc \
-    g++ \
-    make \
-    libssl-dev \
-    libffi-dev \
-    python3-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Establecer directorio de trabajo
+# Establecemos el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copiar todo el proyecto (frontend y backend)
+# Copiamos TODO el contenido del proyecto (backend y frontend) al contenedor
 COPY . .
 
-# Instalar dependencias de Python
-RUN pip install --no-cache-dir -r backend/requirements.txt
+# Actualizamos pip e instalamos las dependencias de Python que están en backend/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r backend/requirements.txt
 
-# Exponer puerto 5000
-EXPOSE 5000
+# Exponemos el puerto en el que Gunicorn se ejecutará
+EXPOSE 3000
 
-# Cambiar al directorio backend para ejecutar la aplicación
-WORKDIR /app/backend
-
-# Comando para iniciar la aplicación en HTTP normal
-CMD ["python", "app.py"]
+# El comando que se ejecutará cuando el contenedor inicie
+# Le decimos a Gunicorn que trabaje DESDE la carpeta backend
+CMD ["gunicorn", "--chdir", "backend", "--workers", "4", "--bind", "0.0.0.0:3000", "app:app"]

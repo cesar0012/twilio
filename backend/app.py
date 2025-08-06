@@ -132,7 +132,5 @@ def health_check():
     return jsonify({'status': 'OK', 'message': 'Servidor Twilio WebApp funcionando correctamente'})
 
 if __name__ == '__main__':
-    # Ejecutar en HTTP normal - Coolify maneja HTTPS externamente
-    print("[INFO] Iniciando servidor Flask en HTTP (puerto 5000)")
-    print("[INFO] Coolify manejará HTTPS externamente")
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    # Ejecutar en modo debug para desarrollo local
+    app.run(debug=True, host='0.0.0.0', port=5000)
