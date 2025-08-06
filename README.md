@@ -58,7 +58,7 @@ Este proyecto está configurado para deployment fácil con Coolify:
 
 5. **Abrir en el navegador:**
    ```
-   http://localhost:5000
+   http://oskc0c4k8c8800sko0go44oc.161.97.64.43.sslip.io
    ```
 
 ## 🔑 Credenciales de Twilio Requeridas
