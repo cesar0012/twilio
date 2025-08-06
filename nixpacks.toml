@@ -1,23 +1,10 @@
-# nixpacks.toml - Configuración para Coolify deployment
-# Este archivo le dice a Coolify cómo construir y ejecutar la aplicación Flask
+# Le decimos a Nixpacks que use el "proveedor" de Python
+providers = ["python"]
+
+[phases.install]
+# Le decimos cómo instalar las dependencias, especificando la ruta correcta
+cmds = ["pip install -r backend/requirements.txt"]
 
 [start]
-# Comando para iniciar la aplicación en producción
-# Usa Gunicorn con 4 workers para mejor rendimiento
-cmd = "cd backend && gunicorn -w 4 -b 0.0.0.0:3000 app:app"
-
-[variables]
-# Puerto que usará la aplicación (Coolify lo mapea automáticamente)
-PORT = "3000"
-
-[build]
-# Asegurar que se instalen las dependencias de Python
-cmds = [
-    "cd backend && pip install -r requirements.txt"
-]
-
-[phases.setup]
-# Configuración adicional si es necesaria
-cmds = [
-    "echo 'Configurando aplicación Twilio para producción'"
-]
+# Usamos --chdir para que gunicorn se mueva al directorio 'backend' antes de ejecutarse
+cmd = "gunicorn --workers 4 --bind 0.0.0.0:3000 --chdir backend app:app"
