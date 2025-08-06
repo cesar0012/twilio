@@ -1,11 +1,8 @@
-# Fase de configuración: Instala explícitamente Python y Pip
 [phases.setup]
 nixPkgs = ["python311", "python311Packages.pip"]
 
-# Fase de instalación: Ahora que pip existe, instala las dependencias
 [phases.install]
-cmds = ["pip install --upgrade pip", "pip install -r backend/requirements.txt"]
+cmds = ["pip install -r backend/requirements.txt"]
 
-# Fase de inicio: Ejecuta la aplicación
 [start]
 cmd = "gunicorn --chdir backend -w 4 -b 0.0.0.0:3000 app:app"
