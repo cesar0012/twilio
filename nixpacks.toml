@@ -1,10 +1,11 @@
-# Le decimos a Nixpacks que use el "proveedor" de Python
-providers = ["python"]
+# Declara formalmente que estamos usando el proveedor de Python y especificamos una versión
+[providers.python]
+version = "3.11" # Puedes usar 3.10, 3.11, o 3.12
 
+# Fase de instalación: le decimos cómo instalar las dependencias
 [phases.install]
-# Le decimos cómo instalar las dependencias, especificando la ruta correcta
-cmds = ["pip install -r backend/requirements.txt"]
+cmds = ["pip install --upgrade pip", "pip install -r backend/requirements.txt"]
 
+# Fase de inicio: le decimos cómo ejecutar la aplicación
 [start]
-# Usamos --chdir para que gunicorn se mueva al directorio 'backend' antes de ejecutarse
-cmd = "gunicorn --workers 4 --bind 0.0.0.0:3000 --chdir backend app:app"
+cmd = "gunicorn --chdir backend -w 4 -b 0.0.0.0:3000 app:app"
