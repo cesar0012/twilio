@@ -1,12 +1,23 @@
-from flask import Flask, request, jsonify
+# --- CAMBIO 1: Importar 'send_from_directory' ---
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from twilio.jwt.access_token import AccessToken
 from twilio.jwt.access_token.grants import VoiceGrant
 from twilio.twiml.voice_response import VoiceResponse
 import os
 
-app = Flask(__name__)
+# --- CAMBIO 2: Configurar Flask para que sepa dónde está el frontend ---
+# La ruta '../frontend' le dice a Flask que suba un nivel desde 'backend' y entre a 'frontend'
+app = Flask(__name__, static_folder='../frontend', static_url_path='')
 CORS(app)  # Permitir CORS para comunicación frontend-backend
+
+# --- CAMBIO 3: Añadir la ruta principal para servir index.html ---
+@app.route('/')
+def serve_index():
+    # Esta función sirve el archivo principal de tu frontend.
+    return send_from_directory(app.static_folder, 'index.html')
+
+# --- TU CÓDIGO EXISTENTE (SIN CAMBIOS) ---
 
 @app.route('/token', methods=['POST'])
 def generate_token():
@@ -71,15 +82,18 @@ def handle_calls():
         # Para llamadas salientes desde el navegador, el parámetro 'To' será el número destino
         # Para llamadas entrantes, el 'To' será nuestro número de Twilio
         
-        if request.form.get('Direction') == 'inbound':
-            # Llamada entrante: enrutar al cliente en el navegador
-            dial = response.dial(caller_id=from_number)
-            dial.client('browser_client')
+        # Nota: El código original tenía una lógica que podría no funcionar como se espera.
+        # Esta versión simplificada asume que las llamadas desde el navegador son salientes.
+        if 'to' in request.form:
+             dial = response.dial(caller_id=from_number)
+             dial.number(request.form['to'])
+        elif request.form.get('Direction') == 'inbound':
+            # Llamada entrante: conectar al cliente que se identifique como 'browser_client'
+             dial = response.dial()
+             dial.client('browser_client')
         else:
-            # Llamada saliente: marcar al número destino
-            caller_id = request.form.get('CallerId', from_number)
-            response.dial(to_number, caller_id=caller_id)
-        
+             response.say("Gracias por llamar, no se especificó un destino.")
+
         return str(response), 200, {'Content-Type': 'text/xml'}
         
     except Exception as e:
@@ -97,5 +111,5 @@ def health_check():
     return jsonify({'status': 'OK', 'message': 'Servidor Twilio WebApp funcionando correctamente'})
 
 if __name__ == '__main__':
-    # Ejecutar en modo debug para desarrollo
+    # Ejecutar en modo debug para desarrollo local
     app.run(debug=True, host='0.0.0.0', port=5000)
