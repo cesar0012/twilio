@@ -146,8 +146,13 @@ class TwilioPhone {
                 
                 // Verificar permisos de micrófono antes de configurar el device
                 console.log('DEBUG: Verificando permisos de micrófono...');
-                this.checkMicrophonePermissions().then(() => {
-                    console.log('DEBUG: Permisos de micrófono verificados exitosamente');
+                this.checkMicrophonePermissions().then((result) => {
+                    if (result && result.status === 'warning') {
+                        console.warn('DEBUG: Verificación de micrófono omitida:', result.message);
+                        console.warn('DEBUG: Continuando con configuración de Twilio Device...');
+                    } else {
+                        console.log('DEBUG: Permisos de micrófono verificados exitosamente');
+                    }
                     
                     console.log('DEBUG: Creando instancia de Twilio.Device');
                     const deviceOptions = {
@@ -226,7 +231,48 @@ class TwilioPhone {
                     console.error('DEBUG: Error verificando permisos de micrófono:', error);
                     console.error('DEBUG: Tipo de error:', error.constructor.name);
                     console.error('DEBUG: Stack trace:', error.stack);
-                    reject(error);
+                    
+                    // Si el error es por getUserMedia no soportado, intentamos continuar
+                    if (error.message && error.message.includes('getUserMedia no soportada')) {
+                        console.warn('DEBUG: Continuando sin verificación de micrófono...');
+                        console.warn('DEBUG: Twilio manejará los permisos durante la llamada');
+                        
+                        try {
+                            console.log('DEBUG: Creando instancia de Twilio.Device sin verificación previa');
+                            const deviceOptions = {
+                                debug: true,
+                                answerOnBridge: true,
+                                allowIncomingWhileBusy: false
+                            };
+                            
+                            this.device = new Twilio.Device(token, deviceOptions);
+                            
+                            // Event listeners (mismo código que arriba)
+                            this.device.on('registered', () => {
+                                console.log('DEBUG: Evento "registered" disparado');
+                                console.log('DEBUG: Twilio.Device está registrado y listo');
+                                console.log('Twilio.Device está registrado y listo');
+                                resolve();
+                            });
+
+                            this.device.on('error', (error) => {
+                                console.error('DEBUG: Evento "error" disparado en dispositivo');
+                                const errorMessage = this.handleTwilioError(error, 'dispositivo');
+                                this.showError(errorMessage);
+                                reject(error);
+                            });
+                            
+                            // Registrar el device
+                            console.log('DEBUG: Registrando device sin verificación previa...');
+                            this.device.register();
+                            
+                        } catch (deviceError) {
+                            console.error('DEBUG: Error creando device sin verificación:', deviceError);
+                            reject(deviceError);
+                        }
+                    } else {
+                        reject(error);
+                    }
                 });
 
             } catch (error) {
@@ -247,11 +293,19 @@ class TwilioPhone {
             console.log('DEBUG: Verificando permisos de micrófono...');
             console.log('DEBUG: Navegador:', navigator.userAgent);
             console.log('DEBUG: mediaDevices disponible:', !!navigator.mediaDevices);
+            console.log('DEBUG: Protocolo actual:', window.location.protocol);
+            console.log('DEBUG: Host actual:', window.location.host);
             
             // Verificar si mediaDevices está disponible
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                console.error('DEBUG: API getUserMedia no soportada en este navegador');
-                throw new Error('API getUserMedia no soportada en este navegador');
+                console.warn('DEBUG: API getUserMedia no disponible - posiblemente debido a contexto HTTP');
+                console.warn('DEBUG: Twilio puede funcionar sin verificación previa de micrófono');
+                console.warn('DEBUG: Los permisos se solicitarán cuando se inicie la llamada');
+                return { 
+                    status: 'warning', 
+                    message: 'Verificación de micrófono omitida - se solicitarán permisos durante la llamada',
+                    reason: 'getUserMedia no disponible (posiblemente contexto HTTP)'
+                };
             }
             
             // Listar dispositivos disponibles para diagnóstico
