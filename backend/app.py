@@ -49,7 +49,7 @@ def generate_token():
             account_sid,
             api_key_sid,
             api_key_secret,
-            identity=twilio_phone_number
+            identity='browser_client'
         )
         
         print("[DEBUG] Creando VoiceGrant...")
@@ -68,7 +68,7 @@ def generate_token():
         
         return jsonify({
             'token': jwt_token,
-            'identity': twilio_phone_number
+            'identity': 'browser_client'
         })
         
     except Exception as e:
@@ -106,14 +106,14 @@ def handle_calls():
         # Nota: El código original tenía una lógica que podría no funcionar como se espera.
         # Esta versión simplificada asume que las llamadas desde el navegador son salientes.
         if 'to' in request.form:
-             dial = response.dial(caller_id=from_number)
-             dial.number(request.form['to'])
+            dial = response.dial(caller_id=from_number)
+            dial.number(request.form['to'])
         elif request.form.get('Direction') == 'inbound':
             # Llamada entrante: conectar al cliente que se identifique como 'browser_client'
-             dial = response.dial()
-             dial.client('browser_client')
+            dial = response.dial()
+            dial.client('browser_client')
         else:
-             response.say("Gracias por llamar, no se especificó un destino.")
+            response.say("Gracias por llamar, no se especificó un destino.")
 
         return str(response), 200, {'Content-Type': 'text/xml'}
         
