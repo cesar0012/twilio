@@ -623,11 +623,10 @@ class TwilioPhone {
             
             // Los nombres 'ToNumber' y 'FromNumber' son los que nuestro backend ahora buscará
             // (con el prefijo 'Parameter' añadido por Twilio)
-            // 'To' es el parámetro estándar que Twilio espera para el número de destino.
-            // 'FromNumber' es nuestro parámetro personalizado para el caller_id.
+            // Ambos son parámetros personalizados que el backend buscará (prefijados con 'Parameter')
             const callParams = {
-                To: cleanNumber,             // El número al que se quiere llamar
-                FromNumber: userTwilioNumber // El número de Twilio del usuario que usaremos como Caller ID
+                To: cleanNumber,           // Twilio usará esto como 'ParameterTo'
+                FromNumber: userTwilioNumber // Twilio usará esto como 'ParameterFromNumber'
             };
             console.log('DEBUG: Parámetros de llamada:', callParams);
             console.log('DEBUG: Método de conexión disponible:', typeof this.device.connect);
