@@ -635,7 +635,7 @@ class TwilioPhone {
             console.log('DEBUG: Ejecutando device.connect()...');
             
             // Realizar llamada
-            const call = await this.device.connect(callParams);
+            const call = await this.device.connect({ params: callParams });
 
             console.log('DEBUG: device.connect() ejecutado');
             console.log('DEBUG: Llamada iniciada exitosamente');

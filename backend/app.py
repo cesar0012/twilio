@@ -98,16 +98,13 @@ def handle_calls():
         # Si la llamada viene del navegador, es una llamada SALIENTE
         if from_identity and from_identity.startswith('client:'):
             
-            # --- LA CORRECCIÓN CLAVE ---
-            # Twilio envía los parámetros personalizados con el prefijo "Parameter".
-            # Buscamos 'ParameterFromNumber' que enviamos desde el frontend.
-            caller_id = request.form.get('ParameterFromNumber')
-            # El número a marcar viene en el parámetro estándar 'To' para llamadas salientes
+            # Obtener el número de teléfono de Twilio desde las credenciales
+            caller_id = request.form.get('FromNumber')
+            print(f"Caller ID (FromNumber): {caller_id}") # Depuración
+
+            # Obtener el número a llamar desde la solicitud del frontend
             number_to_dial = request.form.get('To')
-            
-            print(f"Llamada saliente detectada. Intentando extraer parámetros:")
-            print(f"  - Caller ID (de 'ParameterFromNumber'): {caller_id}")
-            print(f"  - Número a marcar (de 'To'): {number_to_dial}")
+            print(f"Número a llamar (To): {number_to_dial}") # Depuración
 
             if caller_id and number_to_dial:
                 dial = response.dial(caller_id=caller_id)
