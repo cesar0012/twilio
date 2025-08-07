@@ -616,9 +616,15 @@ class TwilioPhone {
             this.updateStatus('Realizando llamada...', 'connecting');
             console.log('DEBUG: Estado actualizado a "Realizando llamada..."');
             
-            // Preparar parámetros de llamada
+            // Obtener el número de Twilio del usuario desde las credenciales
+            const credentials = window.twilioCredentials.getForBackend();
+            const userTwilioNumber = credentials.twilioPhoneNumber;
+            console.log('DEBUG: Número de Twilio del usuario:', userTwilioNumber);
+            
+            // Preparar parámetros de llamada incluyendo el número de origen
             const callParams = {
-                To: cleanNumber
+                To: cleanNumber,
+                from: userTwilioNumber  // Pasar el número de Twilio como parámetro 'from'
             };
             console.log('DEBUG: Parámetros de llamada:', callParams);
             console.log('DEBUG: Método de conexión disponible:', typeof this.device.connect);

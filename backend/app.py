@@ -107,8 +107,19 @@ def handle_calls():
         if from_number and from_number.startswith('client:'):
             # Llamada saliente: marcar al número especificado
             print(f"[DEBUG] Llamada saliente desde cliente {from_number} al número: {to_number}")
-            dial = response.dial()
-            dial.number(to_number)
+            
+            # Obtener el número de Twilio del usuario que se pasó como parámetro 'from'
+            caller_id = request.form.get('from')
+            print(f"[DEBUG] Caller ID obtenido del parámetro 'from': {caller_id}")
+            
+            if caller_id and to_number:
+                # Usar el número de Twilio del usuario como caller_id
+                dial = response.dial(caller_id=caller_id)
+                dial.number(to_number)
+                print(f"[DEBUG] Llamada configurada con caller_id: {caller_id} hacia: {to_number}")
+            else:
+                response.say("Faltan parámetros para realizar la llamada.")
+                print(f"[DEBUG] Error: caller_id={caller_id}, to_number={to_number}")
         else:
             # Llamada entrante: conectar al cliente del navegador
             print(f"[DEBUG] Llamada entrante desde {from_number}, conectando a browser_client")
