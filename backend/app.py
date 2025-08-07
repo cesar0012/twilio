@@ -102,12 +102,12 @@ def handle_calls():
             # Twilio envía los parámetros personalizados con el prefijo "Parameter".
             # Buscamos 'ParameterFromNumber' que enviamos desde el frontend.
             caller_id = request.form.get('ParameterFromNumber')
-            # Ambos, caller_id y el número a marcar, son parámetros personalizados
-            number_to_dial = request.form.get('ParameterTo')
+            # El número a marcar viene en el parámetro estándar 'To' para llamadas salientes
+            number_to_dial = request.form.get('To')
             
             print(f"Llamada saliente detectada. Intentando extraer parámetros:")
             print(f"  - Caller ID (de 'ParameterFromNumber'): {caller_id}")
-            print(f"  - Número a marcar (de 'ParameterTo'): {number_to_dial}")
+            print(f"  - Número a marcar (de 'To'): {number_to_dial}")
 
             if caller_id and number_to_dial:
                 dial = response.dial(caller_id=caller_id)
