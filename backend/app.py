@@ -103,8 +103,8 @@ def handle_calls():
             print(f"Caller ID (FromNumber): {caller_id}") # Depuración
 
             # Obtener el número a llamar desde la solicitud del frontend
-    number_to_dial = request.form.get('PhoneNumber')
-    print(f"Número a llamar (PhoneNumber): {number_to_dial}") # Depuración
+            number_to_dial = request.form.get('PhoneNumber')
+            print(f"Número a llamar (PhoneNumber): {number_to_dial}") # Depuración
 
             if caller_id and number_to_dial:
                 dial = response.dial(caller_id=caller_id)
