@@ -82,54 +82,47 @@ def generate_token():
 def handle_calls():
     """
     Webhook para manejar llamadas entrantes y salientes
-    Genera TwiML apropiado según el tipo de llamada
     """
+
+    # --- PASO DE DEPURACIÓN MEJORADO ---
+    print("\n--- INICIO DE WEBHOOK /handle_calls ---")
+    all_params = request.form.to_dict()
+    print(f"Parámetros recibidos de Twilio: {all_params}")
+    print("--- FIN DE WEBHOOK ---\n")
+    # ----------------------------------------
+
+    response = VoiceResponse()
     try:
-        print("[DEBUG] Recibida solicitud en /handle_calls")
-        print(f"[DEBUG] Datos del formulario: {request.form}")
-        print(f"[DEBUG] Datos JSON: {request.get_json()}")
+        from_identity = request.form.get('From')
         
-        # Obtener parámetros de la llamada
-        from_number = request.form.get('From')
-        to_number = request.form.get('To')
-        call_sid = request.form.get('CallSid')
-        
-        print(f"[DEBUG] Parámetros de llamada - From: {from_number}, To: {to_number}, CallSid: {call_sid}")
-        
-        # Crear respuesta TwiML
-        response = VoiceResponse()
-        
-        # Determinar si es llamada entrante o saliente
-        # Para llamadas salientes desde el navegador, el 'From' será 'client:browser_client'
-        # Para llamadas entrantes, el 'From' será un número de teléfono real
-        
-        # Verificar si es una llamada saliente (desde el navegador a un número externo)
-        if from_number and from_number.startswith('client:'):
-            # Llamada saliente: marcar al número especificado
-            print(f"[DEBUG] Llamada saliente desde cliente {from_number} al número: {to_number}")
+        # Si la llamada viene del navegador, es una llamada SALIENTE
+        if from_identity and from_identity.startswith('client:'):
             
-            # Obtener el número de Twilio del usuario que se pasó como parámetro 'from'
-            caller_id = request.form.get('from')
-            print(f"[DEBUG] Caller ID obtenido del parámetro 'from': {caller_id}")
+            # --- LA CORRECCIÓN CLAVE ---
+            # Twilio envía los parámetros personalizados con el prefijo "Parameter".
+            # Buscamos 'ParameterFromNumber' que enviamos desde el frontend.
+            caller_id = request.form.get('ParameterFromNumber')
+            number_to_dial = request.form.get('ParameterToNumber')
             
-            if caller_id and to_number:
-                # Usar el número de Twilio del usuario como caller_id
+            print(f"Llamada saliente detectada. Intentando extraer parámetros:")
+            print(f"  - Caller ID (de 'ParameterFromNumber'): {caller_id}")
+            print(f"  - Número a marcar (de 'ParameterToNumber'): {number_to_dial}")
+
+            if caller_id and number_to_dial:
                 dial = response.dial(caller_id=caller_id)
-                dial.number(to_number)
-                print(f"[DEBUG] Llamada configurada con caller_id: {caller_id} hacia: {to_number}")
+                dial.number(number_to_dial)
             else:
-                response.say("Faltan parámetros para realizar la llamada.")
-                print(f"[DEBUG] Error: caller_id={caller_id}, to_number={to_number}")
-        else:
-            # Llamada entrante: conectar al cliente del navegador
-            print(f"[DEBUG] Llamada entrante desde {from_number}, conectando a browser_client")
+                response.say("Error: Faltan los parámetros personalizados para realizar la llamada.")
+        
+        else: # Llamada entrante
+            print("Llamada entrante detectada. Conectando al cliente del navegador.")
             dial = response.dial()
             dial.client('browser_client')
 
         return str(response), 200, {'Content-Type': 'text/xml'}
         
     except Exception as e:
-        # En caso de error, colgar la llamada
+        print(f"\n!!! ERROR DENTRO DEL BLOQUE TRY: {e} !!!\n")
         response = VoiceResponse()
         response.say('Lo sentimos, ha ocurrido un error. La llamada será terminada.')
         response.hangup()

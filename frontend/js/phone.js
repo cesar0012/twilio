@@ -621,10 +621,11 @@ class TwilioPhone {
             const userTwilioNumber = credentials.twilioPhoneNumber;
             console.log('DEBUG: Número de Twilio del usuario:', userTwilioNumber);
             
-            // Preparar parámetros de llamada incluyendo el número de origen
+            // Los nombres 'ToNumber' y 'FromNumber' son los que nuestro backend ahora buscará
+            // (con el prefijo 'Parameter' añadido por Twilio)
             const callParams = {
-                To: cleanNumber,
-                from: userTwilioNumber  // Pasar el número de Twilio como parámetro 'from'
+                ToNumber: cleanNumber,      // El número al que se quiere llamar
+                FromNumber: userTwilioNumber // El número de Twilio del usuario
             };
             console.log('DEBUG: Parámetros de llamada:', callParams);
             console.log('DEBUG: Método de conexión disponible:', typeof this.device.connect);
