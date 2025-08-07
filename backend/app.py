@@ -112,7 +112,7 @@ def handle_calls():
                 dial = response.dial(caller_id=caller_id)
                 dial.number(number_to_dial)
             else:
-                response.say("Error: Faltan los parámetros personalizados para realizar la llamada.")
+                response.say("Error: You are not allowed to make this call.")
         
         else: # Llamada entrante
             print("Llamada entrante detectada. Conectando al cliente del navegador.")
