@@ -100,18 +100,18 @@ def handle_calls():
         response = VoiceResponse()
         
         # Determinar si es llamada entrante o saliente
-        # Para llamadas salientes desde el navegador, Twilio envía el parámetro 'To' con el número destino
-        # Para llamadas entrantes, el 'To' será nuestro número de Twilio
+        # Para llamadas salientes desde el navegador, el 'From' será 'client:browser_client'
+        # Para llamadas entrantes, el 'From' será un número de teléfono real
         
         # Verificar si es una llamada saliente (desde el navegador a un número externo)
-        if 'To' in request.form and request.form.get('To') != from_number:
+        if from_number and from_number.startswith('client:'):
             # Llamada saliente: marcar al número especificado
-            print(f"[DEBUG] Llamada saliente al número: {request.form['To']}")
-            dial = response.dial(caller_id=from_number)
-            dial.number(request.form['To'])
+            print(f"[DEBUG] Llamada saliente desde cliente {from_number} al número: {to_number}")
+            dial = response.dial()
+            dial.number(to_number)
         else:
             # Llamada entrante: conectar al cliente del navegador
-            print(f"[DEBUG] Llamada entrante, conectando a browser_client")
+            print(f"[DEBUG] Llamada entrante desde {from_number}, conectando a browser_client")
             dial = response.dial()
             dial.client('browser_client')
 
