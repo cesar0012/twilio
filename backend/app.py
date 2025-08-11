@@ -99,12 +99,12 @@ def handle_calls():
         if from_identity and from_identity.startswith('client:'):
             
             # Obtener el número de teléfono de Twilio desde las credenciales
-            caller_id = request.form.get('ParameterFromNumber')
-            print(f"Caller ID (ParameterFromNumber): {caller_id}") # Depuración
+            caller_id = request.form.get('FromNumber') or request.form.get('ParameterFromNumber')
+            print(f"Caller ID (FromNumber/ParameterFromNumber): {caller_id}") # Depuración
 
             # Obtener el número a llamar desde la solicitud del frontend
-            number_to_dial = request.form.get('ParameterPhoneNumber')
-            print(f"Número a llamar (ParameterPhoneNumber): {number_to_dial}") # Depuración
+            number_to_dial = request.form.get('PhoneNumber') or request.form.get('ParameterPhoneNumber')
+            print(f"Número a llamar (PhoneNumber/ParameterPhoneNumber): {number_to_dial}") # Depuración
 
             if caller_id and number_to_dial:
                 dial = response.dial(caller_id=caller_id)
