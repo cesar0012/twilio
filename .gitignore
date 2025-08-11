@@ -48,6 +48,9 @@ venv.bak/
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+
+# Carpeta duplicada del proyecto
+twilio-app/
 Thumbs.db
 
 # Logs
