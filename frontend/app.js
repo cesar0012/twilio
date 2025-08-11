@@ -603,15 +603,21 @@ class TwilioCallApp {
 }
 
 // Funciones globales para el HTML
-function toggleConnection() {
+async function toggleConnection() {
     const toggle = document.getElementById('connectionToggle');
     const label = document.getElementById('toggleLabel');
     
     if (toggle.checked) {
-        twilioApp.connect();
-        if (label) label.textContent = 'Desconectar';
+        const success = await twilioApp.connect();
+        if (success) {
+            if (label) label.textContent = 'Desconectar';
+        } else {
+            // Si falla la conexión, revertir el toggle
+            toggle.checked = false;
+            if (label) label.textContent = 'Conectar';
+        }
     } else {
-        twilioApp.disconnect();
+        await twilioApp.disconnect();
         if (label) label.textContent = 'Conectar';
     }
 }

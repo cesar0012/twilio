@@ -10,6 +10,7 @@ class PhoneManager {
         this.currentCall = null;
         this.isConnected = false;
         this.isRegistered = false;
+        this.backendUrl = 'http://localhost:3000'; // URL del backend
         
         // Audio settings
         this.audioSettings = {
@@ -92,7 +93,8 @@ class PhoneManager {
         } catch (error) {
             console.error('Error connecting to Twilio:', error);
             this.app.updateConnectionStatus('disconnected');
-            this.app.showNotification(`Error de conexión: ${error.message}`, 'error');
+            const errorMessage = error?.message || error?.toString() || 'Error desconocido';
+            this.app.showNotification(`Error de conexión: ${errorMessage}`, 'error');
             return false;
         }
     }
@@ -403,32 +405,50 @@ class PhoneManager {
      */
     async getAccessToken(credentials) {
         try {
-            const response = await fetch('/api/token', {
+            console.log('DEBUG: Enviando solicitud de token al backend');
+            console.log('DEBUG: URL de solicitud:', `${this.backendUrl}/token`);
+            console.log('DEBUG: Credenciales a enviar:', {
+                accountSid: credentials.accountSid ? 'presente' : 'ausente',
+                apiKeySid: credentials.apiKeySid ? 'presente' : 'ausente',
+                apiKeySecret: credentials.apiKeySecret ? 'presente' : 'ausente',
+                twimlAppSid: credentials.twimlAppSid ? 'presente' : 'ausente',
+                twilioPhoneNumber: credentials.twilioPhoneNumber ? 'presente' : 'ausente'
+            });
+            
+            const response = await fetch(`${this.backendUrl}/token`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    identity: credentials.identity || 'user',
-                    accountSid: credentials.accountSid,
-                    authToken: credentials.authToken,
-                    twimlAppSid: credentials.twimlAppSid
-                })
+                body: JSON.stringify(credentials)
             });
+            
+            console.log('DEBUG: Respuesta del servidor recibida');
+            console.log('DEBUG: Status de respuesta:', response.status);
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                console.error('DEBUG: Error en respuesta del servidor');
+                const errorText = await response.text();
+                console.error('DEBUG: Texto de error:', errorText);
+                
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch (e) {
+                    throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
+                }
+                
+                throw new Error(errorData.error || 'Error del servidor');
             }
 
             const data = await response.json();
+            console.log('DEBUG: Token recibido:', data.token ? 'presente' : 'ausente');
+            
             return data.token;
             
         } catch (error) {
             console.error('Error getting access token:', error);
-            
-            // Fallback: generar token temporal para desarrollo
-            console.warn('Using fallback token generation for development');
-            return this.app.credentialsManager.generateAccessToken();
+            throw error; // Re-lanzar el error en lugar de usar fallback
         }
     }
 
