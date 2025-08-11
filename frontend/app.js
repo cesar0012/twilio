@@ -617,12 +617,14 @@ function toggleConnection() {
 }
 
 function saveCredentials() {
-    const accountSid = document.getElementById('accountSid').value;
-    const authToken = document.getElementById('authToken').value;
-    const twimlAppSid = document.getElementById('twimlAppSid').value;
-    const identity = document.getElementById('identity').value;
+    const accountSid = document.getElementById('accountSid').value.trim();
+    const authToken = document.getElementById('authToken').value.trim();
+    const apiKeySid = document.getElementById('apiKeySid').value.trim();
+    const apiKeySecret = document.getElementById('apiKeySecret').value.trim();
+    const twimlAppSid = document.getElementById('twimlAppSid').value.trim();
+    const twilioPhoneNumber = document.getElementById('twilioPhoneNumber').value.trim();
     
-    if (!accountSid || !authToken || !twimlAppSid || !identity) {
+    if (!accountSid || !authToken || !apiKeySid || !apiKeySecret || !twimlAppSid || !twilioPhoneNumber) {
         twilioApp.showNotification('Por favor, completa todos los campos de credenciales', 'error');
         return;
     }
@@ -630,17 +632,23 @@ function saveCredentials() {
     const credentials = {
         accountSid,
         authToken,
+        apiKeySid,
+        apiKeySecret,
         twimlAppSid,
-        identity
+        twilioPhoneNumber
     };
     
-    twilioApp.credentialsManager.saveCredentials(credentials);
-    twilioApp.showNotification('Credenciales guardadas correctamente', 'success');
-    
-    // Habilitar el toggle de conexión
-    const connectionToggle = document.getElementById('connectionToggle');
-    if (connectionToggle) {
-        connectionToggle.disabled = false;
+    const success = twilioApp.credentialsManager.saveCredentials(credentials);
+    if (success) {
+        twilioApp.showNotification('Credenciales guardadas correctamente', 'success');
+        
+        // Habilitar el toggle de conexión
+        const connectionToggle = document.getElementById('connectionToggle');
+        if (connectionToggle) {
+            connectionToggle.disabled = false;
+        }
+    } else {
+        twilioApp.showNotification('Error al guardar las credenciales', 'error');
     }
 }
 
@@ -664,8 +672,16 @@ function confirmClearCredentials() {
             // Limpiar los campos del formulario
             document.getElementById('accountSid').value = '';
             document.getElementById('authToken').value = '';
+            document.getElementById('apiKeySid').value = '';
+            document.getElementById('apiKeySecret').value = '';
             document.getElementById('twimlAppSid').value = '';
-            document.getElementById('identity').value = '';
+            document.getElementById('twilioPhoneNumber').value = '';
+            
+            // Limpiar el campo identity si existe (para compatibilidad)
+            const identityField = document.getElementById('identity');
+            if (identityField) {
+                identityField.value = '';
+            }
             
             // Deshabilitar el toggle de conexión
             const connectionToggle = document.getElementById('connectionToggle');

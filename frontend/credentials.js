@@ -105,7 +105,14 @@ class CredentialsManager {
             return false;
         }
 
-        const requiredFields = ['accountSid', 'authToken', 'twimlAppSid'];
+        const requiredFields = [
+            'accountSid',
+            'authToken', 
+            'apiKeySid',
+            'apiKeySecret',
+            'twimlAppSid',
+            'twilioPhoneNumber'
+        ];
         return requiredFields.every(field => {
             return credentials[field] && 
                    typeof credentials[field] === 'string' && 
@@ -130,16 +137,20 @@ class CredentialsManager {
             return {
                 accountSid: '',
                 authToken: '',
+                apiKeySid: '',
+                apiKeySecret: '',
                 twimlAppSid: '',
-                identity: ''
+                twilioPhoneNumber: ''
             };
         }
 
         return {
             accountSid: credentials.accountSid || '',
             authToken: credentials.authToken ? '••••••••••••••••' : '',
+            apiKeySid: credentials.apiKeySid || '',
+            apiKeySecret: credentials.apiKeySecret ? '••••••••••••••••' : '',
             twimlAppSid: credentials.twimlAppSid || '',
-            identity: credentials.identity || ''
+            twilioPhoneNumber: credentials.twilioPhoneNumber || ''
         };
     }
 
