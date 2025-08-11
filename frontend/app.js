@@ -25,7 +25,7 @@ class TwilioCallApp {
             statusDot: document.querySelector('.status-dot'),
             
             // Dialer elements
-            phoneInput: document.getElementById('phoneNumberInput'),
+            phoneInput: document.getElementById('phoneInput'),
             clearBtn: document.getElementById('clearNumberBtn'),
             dialpadGrid: document.getElementById('dialpadGrid'),
             dialpadBtns: document.querySelectorAll('.dialpad-btn'),
