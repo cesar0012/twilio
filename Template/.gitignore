@@ -1,0 +1,8 @@
+# Ignorar todo el contenido de esta carpeta Template
+# Esta carpeta contiene templates de referencia que no deben subirse al repositorio
+
+# Ignorar todos los archivos y carpetas
+*
+
+# Pero mantener este .gitignore
+!.gitignore

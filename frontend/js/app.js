@@ -17,7 +17,8 @@ class TwilioApp {
         this.handleConnect = this.handleConnect.bind(this);
         this.handleDisconnect = this.handleDisconnect.bind(this);
         this.handleCall = this.handleCall.bind(this);
-    }
+        }
+    });
 
     /**
      * Inicializa la aplicación
@@ -268,7 +269,21 @@ class TwilioApp {
      * Maneja la limpieza de credenciales
      */
     handleClearCredentials() {
-        if (confirm('¿Está seguro de que desea eliminar las credenciales guardadas?')) {
+        Swal.fire({
+        title: '¿Estás seguro?',
+        text: '¿Deseas eliminar las credenciales guardadas?',
+        icon: 'warning',
+        iconColor: '#ffab00',
+        showCancelButton: true,
+        confirmButtonColor: '#ff3e1d',
+        cancelButtonColor: '#032cc5',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        customClass: {
+            popup: 'swal-custom'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
             window.twilioCredentials.clear();
             this.clearCredentialsForm();
             this.updateConnectionUI(false);
