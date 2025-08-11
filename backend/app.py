@@ -98,13 +98,21 @@ def handle_calls():
         # Si la llamada viene del navegador, es una llamada SALIENTE
         if from_identity and from_identity.startswith('client:'):
             
-            # Obtener el número de teléfono de Twilio desde las credenciales
-            caller_id = request.form.get('FromNumber') or request.form.get('ParameterFromNumber')
-            print(f"Caller ID (FromNumber/ParameterFromNumber): {caller_id}") # Depuración
+            # Obtener el número de teléfono de Twilio desde las credenciales o variable de entorno
+            caller_id = (
+                request.form.get('FromNumber') or
+                request.form.get('ParameterFromNumber') or
+                os.environ.get('DEFAULT_CALLER_ID')
+            )
+            print(f"Caller ID detectado: {caller_id}")  # Depuración
 
             # Obtener el número a llamar desde la solicitud del frontend
-            number_to_dial = request.form.get('PhoneNumber') or request.form.get('ParameterPhoneNumber')
-            print(f"Número a llamar (PhoneNumber/ParameterPhoneNumber): {number_to_dial}") # Depuración
+            number_to_dial = (
+                request.form.get('PhoneNumber') or
+                request.form.get('ParameterPhoneNumber') or
+                request.form.get('To')  # Compatibilidad con SDK que envía 'To'
+            )
+            print(f"Número a llamar detectado: {number_to_dial}")  # Depuración
 
             if caller_id and number_to_dial:
                 dial = response.dial(caller_id=caller_id)
