@@ -93,35 +93,22 @@ def handle_calls():
 
     response = VoiceResponse()
     try:
-        from_identity = request.form.get('From')
-        
-        # Si la llamada viene del navegador, es una llamada SALIENTE
-        if from_identity and from_identity.startswith('client:'):
+        # Si la llamada viene del navegador (identificada por 'client:'), es una llamada SALIENTE
+        if 'From' in request.form and request.form['From'].startswith('client:'):
             
-            # Obtener el número de teléfono de Twilio desde las credenciales o variable de entorno
-            caller_id = (
-                request.form.get('FromNumber') or
-                request.form.get('ParameterFromNumber') or
-                os.environ.get('DEFAULT_CALLER_ID')
-            )
-            print(f"Caller ID detectado: {caller_id}")  # Depuración
-
-            # Obtener el número a llamar desde la solicitud del frontend
-            number_to_dial = (
-                request.form.get('PhoneNumber') or
-                request.form.get('ParameterPhoneNumber') or
-                request.form.get('To')  # Compatibilidad con SDK que envía 'To'
-            )
-            print(f"Número a llamar detectado: {number_to_dial}")  # Depuración
-
+            # Para llamadas salientes, necesitamos el ID de la persona que llama (nuestro número de Twilio) y el número a marcar
+            caller_id = request.form.get('FromNumber')
+            number_to_dial = request.form.get('PhoneNumber')
+            
             if caller_id and number_to_dial:
                 dial = response.dial(caller_id=caller_id)
                 dial.number(number_to_dial)
             else:
-                response.say("Error: You are not allowed to make this call.")
-        
-        else: # Llamada entrante
-            print("Llamada entrante detectada. Conectando al cliente del navegador.")
+                # Si falta alguno de los números, no se puede realizar la llamada
+                response.say("Error: No se proporcionó el número de origen o destino.")
+
+        else: # Si no, es una llamada ENTRANTE
+            # Para llamadas entrantes, simplemente conectamos la llamada al cliente del navegador
             dial = response.dial()
             dial.client('browser_client')
 
