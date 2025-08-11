@@ -10,7 +10,7 @@ class PhoneManager {
         this.currentCall = null;
         this.isConnected = false;
         this.isRegistered = false;
-        this.backendUrl = 'http://localhost:3000'; // URL del backend
+        this.backendUrl = 'https://twilio.neox.site'; // URL del backend
         
         // Audio settings
         this.audioSettings = {
