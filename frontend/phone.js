@@ -218,6 +218,7 @@ class PhoneManager {
             };
 
             // Realizar la llamada
+            console.log('Parámetros enviados a Twilio:', params);
             this.currentCall = await this.device.connect(params);
             
             // Configurar event listeners
