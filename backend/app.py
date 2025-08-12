@@ -96,9 +96,12 @@ def handle_calls():
         # Si la llamada viene del navegador (identificada por 'client:'), es una llamada SALIENTE
         if 'From' in request.form and request.form['From'].startswith('client:'):
             
-            # Para llamadas salientes, necesitamos el ID de la persona que llama (nuestro número de Twilio) y el número a marcar
-            caller_id = request.form.get('FromNumber')
-            number_to_dial = request.form.get('PhoneNumber')
+            # Para llamadas salientes, Twilio nos pasa el número a marcar en el parámetro 'To'
+            # y el número de origen (nuestro número de Twilio) en el parámetro 'From'.
+            # Sin embargo, para la función dial, el 'caller_id' debe ser nuestro número de Twilio verificado.
+            # Lo obtenemos del parámetro 'From' que Twilio nos envía en el webhook.
+            caller_id = request.form.get('From')
+            number_to_dial = request.form.get('To')
             
             if caller_id and number_to_dial:
                 dial = response.dial(caller_id=caller_id)
