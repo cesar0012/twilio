@@ -1082,3 +1082,45 @@ body {
     max-width: 100%;
   }
 }
+
+/* =============================================================================
+   Loading Screen Styles
+============================================================================= */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.loading-content {
+  text-align: center;
+  padding: 2rem;
+  border-radius: var(--border-radius-lg);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.loading-overlay .spinner-border {
+  border-width: 0.25em;
+}
+
+.loading-overlay h5 {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.loading-overlay p {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}

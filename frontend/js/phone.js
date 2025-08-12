@@ -582,10 +582,14 @@ class TwilioPhone {
             console.log('DEBUG: Número a llamar:', phoneNumber);
             console.log('DEBUG: Timestamp:', new Date().toISOString());
             
+            // Mostrar pantalla de carga
+            this.showLoadingScreen();
+            
             // Verificaciones previas
             console.log('DEBUG: Verificando estado del dispositivo...');
             if (!this.device || !this.isConnected) {
                 console.error('DEBUG: Device no está conectado');
+                this.hideLoadingScreen();
                 throw new Error('Device no está conectado');
             }
             console.log('DEBUG: Device está disponible:', !!this.device);
@@ -593,6 +597,7 @@ class TwilioPhone {
 
             if (this.currentCall) {
                 console.error('DEBUG: Ya hay una llamada en curso');
+                this.hideLoadingScreen();
                 throw new Error('Ya hay una llamada en curso');
             }
             console.log('DEBUG: No hay llamadas activas');
@@ -601,6 +606,7 @@ class TwilioPhone {
             console.log('DEBUG: Validando número de teléfono...');
             if (!phoneNumber || phoneNumber.trim() === '') {
                 console.error('DEBUG: Número de teléfono vacío');
+                this.hideLoadingScreen();
                 throw new Error('Debe ingresar un número de teléfono');
             }
 
@@ -616,6 +622,7 @@ class TwilioPhone {
             
             if (!cleanNumber.startsWith('+')) {
                 console.error('DEBUG: Número sin código de país');
+                this.hideLoadingScreen();
                 throw new Error('El número debe incluir código de país (+)');
             }
             console.log('DEBUG: Número validado correctamente');
@@ -705,6 +712,9 @@ class TwilioPhone {
         } catch (error) {
             console.error('DEBUG: ========== ERROR EN PROCESO DE LLAMADA ==========');
             console.error('DEBUG: Error realizando llamada:', error);
+            
+            // Ocultar pantalla de carga en caso de error
+            this.hideLoadingScreen();
             
             // Usar el nuevo manejador de errores con diagnóstico
             const errorMessage = this.handleTwilioError(error, 'makeCall');
@@ -828,6 +838,9 @@ class TwilioPhone {
     onCallConnected(call) {
         console.log('DEBUG: onCallConnected ejecutado');
         console.log('Llamada conectada exitosamente');
+        
+        // Ocultar pantalla de carga cuando la llamada se conecta
+        this.hideLoadingScreen();
         
         console.log('DEBUG: Mostrando modal de control de llamada');
         this.showCallControlModal(call);
@@ -1152,6 +1165,26 @@ class TwilioPhone {
             });
         } else {
             console.log('Success:', message);
+        }
+    }
+
+    /**
+     * Muestra la pantalla de carga
+     */
+    showLoadingScreen() {
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+            loadingScreen.style.display = 'flex';
+        }
+    }
+
+    /**
+     * Oculta la pantalla de carga
+     */
+    hideLoadingScreen() {
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+            loadingScreen.style.display = 'none';
         }
     }
 
