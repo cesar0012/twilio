@@ -72,7 +72,7 @@ class TwilioApp {
             
             // Controles de llamada
             phoneNumberInput: document.getElementById('phoneNumber'),
-            callButton: document.getElementById('call-button'),
+            callButton: document.getElementById('callButton'),
             hangupButton: document.getElementById('hangup-button'),
             
             // Controles de llamada activa
@@ -575,32 +575,7 @@ class TwilioApp {
          }
      }
 
-     /**
-      * Muestra notificación toast
-      */
-     showNotification(message, type = 'info') {
-         const toastContainer = document.getElementById('notificationContainer');
-         const toastTemplate = document.getElementById('toastTemplate');
-         
-         if (toastContainer && toastTemplate) {
-             const toastClone = toastTemplate.content.cloneNode(true);
-             const toastElement = toastClone.querySelector('.toast');
-             const toastBody = toastClone.querySelector('.toast-body');
-             
-             toastBody.textContent = message;
-             toastElement.classList.add(`bg-${type}`);
-             
-             toastContainer.appendChild(toastClone);
-             
-             const toast = new bootstrap.Toast(toastElement);
-             toast.show();
-             
-             // Remover el toast después de que se oculte
-             toastElement.addEventListener('hidden.bs.toast', () => {
-                 toastElement.remove();
-             });
-         }
-     }
+
 
      /**
       * Inicializa el dialpad
@@ -636,74 +611,7 @@ class TwilioApp {
          }
      }
 
-     /**
-      * Inicializa los event listeners
-      */
-     initializeEventListeners() {
-         // Botón de llamada
-         if (this.elements.callButton) {
-             this.elements.callButton.addEventListener('click', () => {
-                 const number = this.elements.phoneNumber?.value;
-                 if (number && window.twilioPhone) {
-                     window.twilioPhone.makeCall(number);
-                 }
-             });
-         }
-         
-         // Botón de colgar
-         if (this.elements.hangupButton) {
-             this.elements.hangupButton.addEventListener('click', () => {
-                 if (window.twilioPhone) {
-                     window.twilioPhone.hangup();
-                 }
-             });
-         }
-         
-         // Botones de llamada entrante
-         if (this.elements.acceptCallButton) {
-             this.elements.acceptCallButton.addEventListener('click', () => {
-                 if (window.twilioPhone) {
-                     window.twilioPhone.acceptCall();
-                 }
-             });
-         }
-         
-         if (this.elements.rejectCallButton) {
-             this.elements.rejectCallButton.addEventListener('click', () => {
-                 if (window.twilioPhone) {
-                     window.twilioPhone.rejectCall();
-                 }
-             });
-         }
-         
-         // Controles de llamada
-         if (this.elements.muteButton) {
-             this.elements.muteButton.addEventListener('click', () => {
-                 if (window.twilioPhone) {
-                     window.twilioPhone.toggleMute();
-                 }
-             });
-         }
-         
-         if (this.elements.holdButton) {
-             this.elements.holdButton.addEventListener('click', () => {
-                 if (window.twilioPhone) {
-                     window.twilioPhone.toggleHold();
-                 }
-             });
-         }
-         
-         if (this.elements.speakerButton) {
-             this.elements.speakerButton.addEventListener('click', () => {
-                 if (window.twilioPhone) {
-                     window.twilioPhone.toggleSpeaker();
-                 }
-             });
-         }
-         
-         // Inicializar dialpad
-         this.initializeDialpad();
-     }
+
  }
 
 // Inicializar la aplicación cuando el DOM esté listo

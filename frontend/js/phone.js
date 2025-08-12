@@ -860,7 +860,7 @@ class TwilioPhone {
      * Habilita/deshabilita controles de llamada
      */
     enableCallControls(enabled, inCall = false) {
-        const callButton = document.getElementById('call-button');
+        const callButton = document.getElementById('callButton');
         const hangupButton = document.getElementById('hangup-button');
         const muteButton = document.getElementById('mute-button');
         const holdButton = document.getElementById('hold-button');
@@ -998,9 +998,19 @@ class TwilioPhone {
      * Muestra un mensaje de error
      */
     showError(message) {
-        const messagesElement = document.getElementById('status-messages');
-        if (messagesElement) {
-            messagesElement.innerHTML = `<p class="text-danger mb-0"><i class="fas fa-exclamation-triangle"></i> ${message}</p>`;
+        if (window.Swal) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: message,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true
+            });
+        } else {
+            console.error('Error:', message);
         }
     }
 }
