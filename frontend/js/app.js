@@ -82,7 +82,7 @@ class TwilioApp {
             
             // Dialpad
             dialpadButtons: document.querySelectorAll('.dialpad-btn'),
-            clearNumberButton: document.getElementById('clear-number'),
+            clearNumberButton: document.getElementById('clearNumberButton'),
             
             // Llamadas entrantes
             acceptButton: document.getElementById('accept-call'),
@@ -213,6 +213,23 @@ class TwilioApp {
                 }
             });
         });
+        
+        // Botón de borrar
+        if (this.elements.clearNumberButton) {
+            // Remover event listeners existentes para evitar duplicados
+            this.elements.clearNumberButton.replaceWith(this.elements.clearNumberButton.cloneNode(true));
+            // Volver a obtener la referencia después del reemplazo
+            this.elements.clearNumberButton = document.getElementById('clearNumberButton');
+            
+            this.elements.clearNumberButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.elements.phoneNumberInput) {
+                    this.elements.phoneNumberInput.value = '';
+                    this.elements.phoneNumberInput.focus();
+                }
+            });
+        }
     }
 
     /**
@@ -592,34 +609,9 @@ class TwilioApp {
       * Inicializa el dialpad
       */
      initializeDialpad() {
-         const dialpadButtons = document.querySelectorAll('.dialpad-btn');
-         
-         dialpadButtons.forEach(button => {
-             button.addEventListener('click', (e) => {
-                 const digit = e.target.textContent.trim();
-                 if (this.elements.phoneNumber && digit) {
-                     this.elements.phoneNumber.value += digit;
-                 }
-             });
-         });
-         
-         // Botón de borrar
-         if (this.elements.clearNumberButton) {
-             this.elements.clearNumberButton.addEventListener('click', () => {
-                 if (this.elements.phoneNumber && this.elements.phoneNumber.value.length > 0) {
-                     this.elements.phoneNumber.value = this.elements.phoneNumber.value.slice(0, -1);
-                 }
-             });
-         }
-         
-         // Botón de limpiar todo
-         if (this.elements.clearAllButton) {
-             this.elements.clearAllButton.addEventListener('click', () => {
-                 if (this.elements.phoneNumber) {
-                     this.elements.phoneNumber.value = '';
-                 }
-             });
-         }
+         // Esta función se mantiene para compatibilidad pero la funcionalidad
+         // del dialpad se maneja en setupDialpad() y setupEventListeners()
+         console.log('Dialpad inicializado');
      }
 
 
