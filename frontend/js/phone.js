@@ -30,6 +30,14 @@ class TwilioPhone {
         
         // Cargar historial de llamadas al inicializar
         setTimeout(() => this.loadCallHistory(), 1000);
+        
+        // Inicializar funciones de contactos
+        this.setupContactEventListeners();
+        
+        // Cargar contactos con un pequeño retraso
+        setTimeout(() => {
+            this.loadContacts();
+        }, 1500);
     }
 
     /**
@@ -1621,6 +1629,304 @@ class TwilioPhone {
         } catch (error) {
             console.error('DEBUG: Error al cargar historial de llamadas:', error);
         }
+    }
+
+    // ========== FUNCIONES DE CONTACTOS ==========
+    
+    /**
+     * Inicializa los event listeners para contactos
+     */
+    setupContactEventListeners() {
+        const addContactBtn = document.getElementById('addContactBtn');
+        const saveContactBtn = document.getElementById('saveContactBtn');
+        const contactForm = document.getElementById('contactForm');
+        const contactSearch = document.getElementById('contactSearch');
+        
+        if (addContactBtn) {
+            addContactBtn.addEventListener('click', () => {
+                this.showContactModal();
+            });
+        }
+        
+        if (saveContactBtn) {
+            saveContactBtn.addEventListener('click', () => {
+                this.saveContact();
+            });
+        }
+        
+        if (contactForm) {
+            contactForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveContact();
+            });
+        }
+        
+        if (contactSearch) {
+            contactSearch.addEventListener('input', (e) => {
+                this.filterContacts(e.target.value);
+            });
+        }
+    }
+    
+    /**
+     * Muestra el modal para agregar/editar contacto
+     */
+    showContactModal(contact = null) {
+        const modal = new bootstrap.Modal(document.getElementById('contactModal'));
+        const title = document.getElementById('contactModalTitle');
+        const nameInput = document.getElementById('contactName');
+        const phoneInput = document.getElementById('contactPhone');
+        const emailInput = document.getElementById('contactEmail');
+        const companyInput = document.getElementById('contactCompany');
+        
+        if (contact) {
+            // Modo edición
+            title.innerHTML = '<i class="bx bx-edit me-2"></i>Editar Contacto';
+            nameInput.value = contact.name || '';
+            phoneInput.value = contact.phone || '';
+            emailInput.value = contact.email || '';
+            companyInput.value = contact.company || '';
+            
+            // Guardar ID para edición
+            document.getElementById('contactForm').dataset.editId = contact.id;
+        } else {
+            // Modo agregar
+            title.innerHTML = '<i class="bx bx-user-plus me-2"></i>Agregar Contacto';
+            nameInput.value = '';
+            phoneInput.value = '';
+            emailInput.value = '';
+            companyInput.value = '';
+            
+            // Limpiar ID de edición
+            delete document.getElementById('contactForm').dataset.editId;
+        }
+        
+        modal.show();
+    }
+    
+    /**
+     * Guarda un contacto
+     */
+    saveContact() {
+        const nameInput = document.getElementById('contactName');
+        const phoneInput = document.getElementById('contactPhone');
+        const emailInput = document.getElementById('contactEmail');
+        const companyInput = document.getElementById('contactCompany');
+        const form = document.getElementById('contactForm');
+        
+        // Validar campos requeridos
+        if (!nameInput.value.trim() || !phoneInput.value.trim()) {
+            this.showError('Nombre y teléfono son campos requeridos');
+            return;
+        }
+        
+        // Limpiar y validar número de teléfono
+        const cleanPhone = phoneInput.value.replace(/[^+\d]/g, '');
+        if (!cleanPhone.startsWith('+')) {
+            this.showError('El número debe incluir código de país (+)');
+            return;
+        }
+        
+        const contact = {
+            id: form.dataset.editId || Date.now().toString(),
+            name: nameInput.value.trim(),
+            phone: cleanPhone,
+            email: emailInput.value.trim(),
+            company: companyInput.value.trim(),
+            createdAt: form.dataset.editId ? undefined : new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        try {
+            let contacts = this.getContacts();
+            
+            if (form.dataset.editId) {
+                // Editar contacto existente
+                const index = contacts.findIndex(c => c.id === form.dataset.editId);
+                if (index !== -1) {
+                    contacts[index] = { ...contacts[index], ...contact };
+                }
+            } else {
+                // Agregar nuevo contacto
+                contacts.push(contact);
+            }
+            
+            // Guardar en localStorage
+            localStorage.setItem('twilioContacts', JSON.stringify(contacts));
+            
+            // Actualizar lista
+            this.loadContacts();
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('contactModal'));
+            modal.hide();
+            
+            this.showSuccess(form.dataset.editId ? 'Contacto actualizado' : 'Contacto guardado');
+            
+        } catch (error) {
+            console.error('Error guardando contacto:', error);
+            this.showError('Error al guardar el contacto');
+        }
+    }
+    
+    /**
+     * Obtiene la lista de contactos del localStorage
+     */
+    getContacts() {
+        try {
+            const contacts = localStorage.getItem('twilioContacts');
+            return contacts ? JSON.parse(contacts) : [];
+        } catch (error) {
+            console.error('Error obteniendo contactos:', error);
+            return [];
+        }
+    }
+    
+    /**
+     * Carga y muestra los contactos en la lista
+     */
+    loadContacts() {
+        const contactsList = document.getElementById('contactsList');
+        if (!contactsList) return;
+        
+        const contacts = this.getContacts();
+        
+        if (contacts.length === 0) {
+            contactsList.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="bx bx-user-plus bx-lg mb-2"></i>
+                    <p class="mb-0">No hay contactos guardados</p>
+                    <small>Agregue contactos para acceso rápido</small>
+                </div>
+            `;
+            return;
+        }
+        
+        contactsList.innerHTML = contacts.map(contact => this.createContactElement(contact)).join('');
+        
+        // Agregar event listeners para los botones de acción
+        this.setupContactActionListeners();
+    }
+    
+    /**
+     * Crea el elemento HTML para un contacto
+     */
+    createContactElement(contact) {
+        const initials = contact.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        
+        return `
+            <div class="d-flex align-items-center justify-content-between p-3 border-bottom contact-item" data-contact-id="${contact.id}">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-sm me-3">
+                        <span class="avatar-initial rounded-circle bg-label-primary">${initials}</span>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">${contact.name}</h6>
+                        <small class="text-muted">${contact.phone}</small>
+                        ${contact.company ? `<br><small class="text-muted">${contact.company}</small>` : ''}
+                    </div>
+                </div>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-success call-contact-btn" data-phone="${contact.phone}" title="Llamar">
+                        <i class="bx bx-phone"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Editar">
+                        <i class="bx bx-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-contact-btn" data-contact-id="${contact.id}" title="Eliminar">
+                        <i class="bx bx-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * Configura los event listeners para las acciones de contactos
+     */
+    setupContactActionListeners() {
+        // Botones de llamar
+        document.querySelectorAll('.call-contact-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const phone = btn.dataset.phone;
+                document.getElementById('phoneNumber').value = phone;
+                // Cambiar a la pestaña de llamadas
+                const callTab = document.querySelector('[data-bs-target="#navs-pills-call"]');
+                if (callTab) {
+                    const tab = new bootstrap.Tab(callTab);
+                    tab.show();
+                }
+            });
+        });
+        
+        // Botones de editar
+        document.querySelectorAll('.edit-contact-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const contactId = btn.dataset.contactId;
+                const contact = this.getContacts().find(c => c.id === contactId);
+                if (contact) {
+                    this.showContactModal(contact);
+                }
+            });
+        });
+        
+        // Botones de eliminar
+        document.querySelectorAll('.delete-contact-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const contactId = btn.dataset.contactId;
+                this.deleteContact(contactId);
+            });
+        });
+    }
+    
+    /**
+     * Elimina un contacto
+     */
+    deleteContact(contactId) {
+        const contact = this.getContacts().find(c => c.id === contactId);
+        if (!contact) return;
+        
+        // Confirmar eliminación
+        if (confirm(`¿Está seguro de eliminar el contacto "${contact.name}"?`)) {
+            try {
+                let contacts = this.getContacts();
+                contacts = contacts.filter(c => c.id !== contactId);
+                localStorage.setItem('twilioContacts', JSON.stringify(contacts));
+                this.loadContacts();
+                this.showSuccess('Contacto eliminado');
+            } catch (error) {
+                console.error('Error eliminando contacto:', error);
+                this.showError('Error al eliminar el contacto');
+            }
+        }
+    }
+    
+    /**
+     * Filtra contactos por nombre o teléfono
+     */
+    filterContacts(searchTerm) {
+        const contactItems = document.querySelectorAll('.contact-item');
+        const term = searchTerm.toLowerCase();
+        
+        contactItems.forEach(item => {
+            const contactId = item.dataset.contactId;
+            const contact = this.getContacts().find(c => c.id === contactId);
+            
+            if (contact) {
+                const matchesName = contact.name.toLowerCase().includes(term);
+                const matchesPhone = contact.phone.includes(term);
+                const matchesCompany = contact.company && contact.company.toLowerCase().includes(term);
+                
+                if (matchesName || matchesPhone || matchesCompany || term === '') {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            }
+        });
     }
 }
 
