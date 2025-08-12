@@ -503,63 +503,117 @@
     </div>
     <!-- / Layout wrapper -->
 
-    <!-- Call Overlay -->
-    <div class="call-overlay d-none" id="callOverlay">
-        <div class="call-overlay-content">
-            <div class="text-center mb-4">
-                <div class="avatar avatar-xl mb-3">
-                    <span class="avatar-initial rounded-circle bg-label-primary">
-                        <i class="bx bx-phone bx-lg"></i>
-                    </span>
-                </div>
-                <div class="call-info" id="callInfo">
-                    <h5 class="mb-1" id="callNumber">+1234567890</h5>
-                    <p class="call-status mb-2" id="callStatus">Conectando...</p>
-                    <div class="call-timer" id="callTimer">
-                        <span id="timerDisplay">00:00</span>
+    <!-- Active Call Modal -->
+    <div class="modal fade" id="activeCallModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content call-modal-content">
+                <div class="modal-body text-center p-4">
+                    <!-- Contact Avatar -->
+                    <div class="call-avatar mb-3">
+                        <div class="avatar avatar-xxl">
+                            <span class="avatar-initial rounded-circle bg-primary" id="callAvatar">
+                                <i class="bx bx-user bx-lg"></i>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Info -->
+                    <div class="call-contact-info mb-3">
+                        <h4 class="mb-1 text-dark" id="callContactName">Contacto</h4>
+                        <p class="text-muted mb-1" id="callNumber">+1234567890</p>
+                        <small class="text-muted" id="callStatus">Conectando...</small>
+                    </div>
+                    
+                    <!-- Call Duration -->
+                    <div class="call-duration mb-4">
+                        <h2 class="text-primary mb-0" id="callTimer">00:00</h2>
+                    </div>
+                    
+                    <!-- Call Controls -->
+                    <div class="call-controls-grid">
+                        <div class="row g-3 justify-content-center">
+                            <div class="col-auto">
+                                <button class="btn btn-outline-secondary btn-call-control" id="muteButton" title="Silenciar">
+                                    <i class="bx bx-microphone bx-sm"></i>
+                                </button>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-outline-secondary btn-call-control" id="holdButton" title="Retener">
+                                    <i class="bx bx-pause bx-sm"></i>
+                                </button>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-danger btn-call-control" id="hangupButton" title="Colgar">
+                                    <i class="bx bx-phone-off bx-sm"></i>
+                                </button>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-outline-secondary btn-call-control" id="speakerButton" title="Altavoz">
+                                    <i class="bx bx-volume-full bx-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Controls Row -->
+                        <div class="row g-3 justify-content-center mt-2">
+                            <div class="col-auto">
+                                <button class="btn btn-outline-secondary btn-call-control" id="dialpadToggle" title="Teclado">
+                                    <i class="bx bx-dialpad bx-sm"></i>
+                                </button>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-outline-secondary btn-call-control" id="addCallButton" title="Agregar llamada">
+                                    <i class="bx bx-plus bx-sm"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="call-controls d-flex justify-content-center gap-3">
-                <button class="btn btn-outline-light" id="muteButton" title="Silenciar">
-                    <i class="bx bx-microphone"></i>
-                </button>
-                <button class="btn btn-outline-light" id="holdButton" title="Retener">
-                    <i class="bx bx-pause"></i>
-                </button>
-                <button class="btn btn-danger" id="hangupButton" title="Colgar">
-                    <i class="bx bx-phone-off"></i>
-                </button>
-                <button class="btn btn-outline-light" id="speakerButton" title="Altavoz">
-                    <i class="bx bx-volume-full"></i>
-                </button>
             </div>
         </div>
     </div>
 
     <!-- Incoming Call Modal -->
-    <div class="modal fade" id="incomingCallModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-body text-center py-4">
-                    <div class="mb-3">
-                        <div class="avatar avatar-xl mb-3">
-                            <span class="avatar-initial rounded-circle bg-label-success">
-                                <i class="bx bx-phone-incoming bx-lg"></i>
+    <div class="modal fade" id="incomingCallModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content call-modal-content">
+                <div class="modal-body text-center p-4">
+                    <!-- Incoming Call Animation -->
+                    <div class="incoming-call-animation mb-3">
+                        <div class="avatar avatar-xxl">
+                            <span class="avatar-initial rounded-circle bg-success pulse-animation" id="incomingCallAvatar">
+                                <i class="bx bx-user bx-lg"></i>
                             </span>
                         </div>
-                        <h5 class="mb-1">Llamada Entrante</h5>
-                        <p class="text-muted mb-0" id="incomingNumber">+1234567890</p>
                     </div>
                     
-                    <div class="d-flex justify-content-center gap-3">
-                        <button class="btn btn-success btn-lg" id="acceptCallButton">
-                            <i class="bx bx-phone"></i>
-                        </button>
-                        <button class="btn btn-danger btn-lg" id="rejectCallButton">
-                            <i class="bx bx-phone-off"></i>
-                        </button>
+                    <!-- Contact Info -->
+                    <div class="incoming-contact-info mb-3">
+                        <h4 class="mb-1 text-dark" id="incomingContactName">Llamada Entrante</h4>
+                        <p class="text-muted mb-1" id="incomingNumber">+1234567890</p>
+                        <small class="text-success">Llamada entrante...</small>
+                    </div>
+                    
+                    <!-- Call Actions -->
+                    <div class="incoming-call-actions">
+                        <div class="row g-4 justify-content-center">
+                            <div class="col-auto">
+                                <button class="btn btn-danger btn-call-action" id="rejectCallButton" title="Rechazar">
+                                    <i class="bx bx-phone-off bx-md"></i>
+                                </button>
+                                <div class="mt-2">
+                                    <small class="text-muted">Rechazar</small>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-success btn-call-action" id="acceptCallButton" title="Aceptar">
+                                    <i class="bx bx-phone bx-md"></i>
+                                </button>
+                                <div class="mt-2">
+                                    <small class="text-muted">Aceptar</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

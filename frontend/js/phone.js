@@ -10,6 +10,7 @@ class TwilioPhone {
         this.isConnected = false;
         this.isMuted = false;
         this.isOnHold = false;
+        this.isSpeakerOn = false;
         this.callTimer = null;
         this.callStartTime = null;
         this.backendUrl = 'https://twilio.neox.site'; // URL del backend Flask en VPS
@@ -731,6 +732,7 @@ class TwilioPhone {
             this.currentCall.mute(this.isMuted);
             this.updateMuteButton();
         }
+        return this.isMuted;
     }
 
     /**
@@ -742,6 +744,28 @@ class TwilioPhone {
         this.toggleMute();
         this.isOnHold = this.isMuted;
         this.updateHoldButton();
+        return this.isOnHold;
+    }
+
+    /**
+     * Alterna el estado del altavoz
+     */
+    toggleSpeaker() {
+        this.isSpeakerOn = !this.isSpeakerOn;
+        
+        if (this.currentCall && this.currentCall.getRemoteStream) {
+            try {
+                const audioElement = document.querySelector('audio');
+                if (audioElement) {
+                    audioElement.setSinkId = audioElement.setSinkId || function() {};
+                    // En navegadores que soportan setSinkId, se puede cambiar el dispositivo de salida
+                }
+            } catch (error) {
+                console.warn('Speaker toggle not fully supported in this browser:', error);
+            }
+        }
+        
+        return this.isSpeakerOn;
     }
 
     /**
@@ -877,14 +901,9 @@ class TwilioPhone {
      * Muestra información de llamada activa
      */
     showCallInfo(call) {
-        const callInfo = document.getElementById('call-info');
-        const callNumber = document.getElementById('call-number');
-        
-        if (callInfo && callNumber) {
+        if (window.twilioApp) {
             const remoteNumber = call.parameters.To || call.parameters.From || 'Desconocido';
-            callNumber.textContent = remoteNumber;
-            callInfo.classList.remove('d-none');
-            callInfo.classList.add('fade-in');
+            window.twilioApp.showCallInfo(remoteNumber, '00:00');
         }
     }
 
@@ -892,9 +911,8 @@ class TwilioPhone {
      * Oculta información de llamada
      */
     hideCallInfo() {
-        const callInfo = document.getElementById('call-info');
-        if (callInfo) {
-            callInfo.classList.add('d-none');
+        if (window.twilioApp) {
+            window.twilioApp.hideCallInfo();
         }
     }
 
