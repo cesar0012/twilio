@@ -1361,7 +1361,7 @@ class TwilioPhone {
         
         if (keypad && keypadToggle) {
             if (keypad.style.display === 'none' || keypad.style.display === '') {
-                keypad.style.display = 'block';
+                keypad.style.display = 'flex';
                 keypadToggle.classList.add('active');
             } else {
                 keypad.style.display = 'none';
