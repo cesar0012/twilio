@@ -1040,6 +1040,23 @@ class TwilioPhone {
         }
     }
 
+    showSuccess(message) {
+        if (window.Swal) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: message,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+        } else {
+            console.log('Success:', message);
+        }
+    }
+
     /**
      * Muestra el modal de control de llamadas
      */
@@ -1118,19 +1135,13 @@ class TwilioPhone {
             keypadToggle.onclick = () => this.toggleKeypad();
         }
 
-        // Botones del dialpad DTMF
+        // Botones del dialpad DTMF - enviar tonos directamente
         const dtmfButtons = document.querySelectorAll('#callDialpadGrid [data-dtmf]');
         dtmfButtons.forEach(button => {
-            button.onclick = () => this.addDtmfDigit(button.dataset.dtmf);
+            button.onclick = () => this.sendDtmfTone(button.dataset.dtmf);
         });
 
-        // Botón enviar DTMF
-        const sendDtmfButton = document.getElementById('sendDtmfButton');
-        if (sendDtmfButton) {
-            sendDtmfButton.onclick = () => this.sendDtmf();
-        }
-
-        // Botón limpiar DTMF
+        // Botón limpiar DTMF (mantener para limpiar el display)
         const clearDtmfButton = document.getElementById('clearDtmfButton');
         if (clearDtmfButton) {
             clearDtmfButton.onclick = () => this.clearDtmf();
@@ -1156,29 +1167,33 @@ class TwilioPhone {
     }
 
     /**
-     * Agrega un dígito al input DTMF
+     * Envía un tono DTMF individual directamente
+     */
+    sendDtmfTone(digit) {
+        if (this.currentCall && digit) {
+            try {
+                this.currentCall.sendDigits(digit);
+                this.showSuccess(`Tono DTMF enviado: ${digit}`);
+                
+                // Mostrar el dígito en el input para referencia visual
+                const dtmfInput = document.getElementById('dtmfInput');
+                if (dtmfInput) {
+                    dtmfInput.value += digit;
+                }
+            } catch (error) {
+                console.error('Error enviando DTMF:', error);
+                this.showError('Error enviando tono DTMF');
+            }
+        }
+    }
+
+    /**
+     * Agrega un dígito al input DTMF (solo para display)
      */
     addDtmfDigit(digit) {
         const dtmfInput = document.getElementById('dtmfInput');
         if (dtmfInput) {
             dtmfInput.value += digit;
-        }
-    }
-
-    /**
-     * Envía los tonos DTMF
-     */
-    sendDtmf() {
-        const dtmfInput = document.getElementById('dtmfInput');
-        if (dtmfInput && dtmfInput.value && this.currentCall) {
-            try {
-                this.currentCall.sendDigits(dtmfInput.value);
-                this.showSuccess(`Tonos DTMF enviados: ${dtmfInput.value}`);
-                this.clearDtmf();
-            } catch (error) {
-                console.error('Error enviando DTMF:', error);
-                this.showError('Error enviando tonos DTMF');
-            }
         }
     }
 
