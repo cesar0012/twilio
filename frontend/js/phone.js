@@ -17,7 +17,6 @@ class TwilioPhone {
         // Bind methods
         this.setupDevice = this.setupDevice.bind(this);
         this.makeCall = this.makeCall.bind(this);
-        this.hangup = this.hangup.bind(this);
         this.acceptCall = this.acceptCall.bind(this);
         this.rejectCall = this.rejectCall.bind(this);
     }
@@ -717,11 +716,25 @@ class TwilioPhone {
      * Cuelga la llamada actual
      */
     hangup() {
+        console.log('DEBUG: Función hangup ejecutada');
+        console.log('DEBUG: currentCall existe:', !!this.currentCall);
+        
         if (this.currentCall) {
-            this.currentCall.disconnect();
+            console.log('DEBUG: Desconectando llamada...');
+            // Verificar si es una llamada real con método disconnect
+            if (typeof this.currentCall.disconnect === 'function') {
+                this.currentCall.disconnect();
+            } else {
+                console.log('DEBUG: Llamada de prueba - no se requiere disconnect');
+            }
             this.currentCall = null;
+            console.log('DEBUG: Ocultando modal...');
             this.hideCallControlModal();
+            console.log('DEBUG: Mostrando mensaje de éxito...');
             this.showSuccess('Llamada terminada');
+            console.log('DEBUG: Hangup completado');
+        } else {
+            console.warn('DEBUG: No hay llamada activa para colgar');
         }
     }
 
@@ -1076,12 +1089,39 @@ class TwilioPhone {
             titleElement.textContent = 'En llamada';
             numberElement.textContent = phoneNumber;
             
-            // Mostrar modal
-            const bsModal = new bootstrap.Modal(modal);
-            bsModal.show();
-            
-            // Configurar event listeners para los controles
+            // Configurar event listeners para los controles ANTES de mostrar el modal
             this.setupCallControlEventListeners();
+            
+            // Mostrar modal
+            try {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const bsModal = new bootstrap.Modal(modal);
+                    bsModal.show();
+                } else {
+                    // Fallback: mostrar modal manualmente
+                    modal.style.display = 'block';
+                    modal.classList.add('show');
+                    document.body.classList.add('modal-open');
+                    
+                    // Crear backdrop
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    backdrop.id = 'callModalBackdrop';
+                    document.body.appendChild(backdrop);
+                }
+                console.log('Modal de control de llamadas mostrado');
+            } catch (error) {
+                console.error('Error mostrando modal:', error);
+                // Fallback manual
+                modal.style.display = 'block';
+                modal.classList.add('show');
+            }
+        } else {
+            console.error('Elementos del modal no encontrados:', {
+                modal: !!modal,
+                titleElement: !!titleElement,
+                numberElement: !!numberElement
+            });
         }
     }
 
@@ -1091,9 +1131,23 @@ class TwilioPhone {
     hideCallControlModal() {
         const modal = document.getElementById('callControlModal');
         if (modal) {
-            const bsModal = bootstrap.Modal.getInstance(modal);
-            if (bsModal) {
-                bsModal.hide();
+            try {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    const bsModal = bootstrap.Modal.getInstance(modal);
+                    if (bsModal) {
+                        bsModal.hide();
+                    } else {
+                        // Fallback manual
+                        this.hideModalManually(modal);
+                    }
+                } else {
+                    // Fallback manual
+                    this.hideModalManually(modal);
+                }
+            } catch (error) {
+                console.error('Error ocultando modal:', error);
+                // Fallback manual
+                this.hideModalManually(modal);
             }
         }
         
@@ -1105,13 +1159,45 @@ class TwilioPhone {
     }
 
     /**
+     * Oculta el modal manualmente (fallback)
+     */
+    hideModalManually(modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+        document.body.classList.remove('modal-open');
+        
+        // Remover backdrop
+        const backdrop = document.getElementById('callModalBackdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+    }
+
+    /**
      * Configura los event listeners para los controles del modal
      */
     setupCallControlEventListeners() {
+        console.log('DEBUG: Configurando event listeners del modal');
+        
         // Botón de colgar
         const hangupButton = document.getElementById('hangupButton');
+        console.log('DEBUG: Botón de colgar encontrado:', !!hangupButton);
         if (hangupButton) {
-            hangupButton.onclick = () => this.hangup();
+            // Remover event listeners previos
+            hangupButton.onclick = null;
+            hangupButton.removeEventListener('click', this.hangupHandler);
+            
+            // Crear nuevo handler
+            this.hangupHandler = () => {
+                console.log('DEBUG: Botón de colgar clickeado');
+                this.hangup();
+            };
+            
+            // Agregar event listener
+            hangupButton.addEventListener('click', this.hangupHandler);
+            console.log('DEBUG: Event listener de colgar configurado');
+        } else {
+            console.error('DEBUG: Botón de colgar no encontrado en el DOM');
         }
 
         // Botón de silenciar
@@ -1266,6 +1352,20 @@ class TwilioPhone {
             const formattedDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             durationElement.textContent = formattedDuration;
         }
+    }
+
+    /**
+     * Función de prueba para mostrar el modal manualmente
+     */
+    testShowModal() {
+        console.log('DEBUG: Mostrando modal de prueba');
+        const mockCall = {
+            parameters: {
+                To: '+1234567890'
+            }
+        };
+        this.currentCall = mockCall; // Simular llamada activa
+        this.showCallControlModal(mockCall);
     }
 }
 
