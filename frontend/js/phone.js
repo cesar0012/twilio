@@ -898,7 +898,49 @@ class TwilioPhone {
     updateStatus(message, status) {
         const statusElement = document.getElementById('connection-status');
         const messagesElement = document.getElementById('status-messages');
+        const connectionIcon = document.getElementById('connectionIcon');
+        const connectionStatus = document.getElementById('connectionStatus');
         
+        // Actualizar el icono de conexión en el header
+        if (connectionIcon) {
+            connectionIcon.className = 'bx bx-wifi';
+            const iconParent = connectionIcon.parentElement;
+            if (iconParent) {
+                // Remover clases previas
+                iconParent.classList.remove('bg-label-success', 'bg-label-secondary', 'bg-label-warning');
+                
+                switch (status) {
+                    case 'connected':
+                        iconParent.classList.add('bg-label-success');
+                        break;
+                    case 'connecting':
+                        iconParent.classList.add('bg-label-warning');
+                        break;
+                    case 'disconnected':
+                    default:
+                        iconParent.classList.add('bg-label-secondary');
+                        break;
+                }
+            }
+        }
+        
+        // Actualizar el texto de estado de conexión
+        if (connectionStatus) {
+            switch (status) {
+                case 'connected':
+                    connectionStatus.textContent = 'Conectado';
+                    break;
+                case 'connecting':
+                    connectionStatus.textContent = 'Conectando...';
+                    break;
+                case 'disconnected':
+                default:
+                    connectionStatus.textContent = 'Desconectado';
+                    break;
+            }
+        }
+        
+        // Mantener compatibilidad con el elemento de estado existente
         if (statusElement) {
             let icon = 'fas fa-circle';
             let className = 'text-danger';
@@ -1827,7 +1869,7 @@ class TwilioPhone {
                     </div>
                 </div>
                 <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-success call-contact-btn" data-phone="${contact.phone}" title="Llamar">
+                    <button class="btn btn-sm btn-outline-success call-contact-btn" data-phone="${contact.phone}" data-contact-name="${contact.name}" title="Llamar">
                         <i class="bx bx-phone"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-primary edit-contact-btn" data-contact-id="${contact.id}" title="Editar">
@@ -1850,12 +1892,29 @@ class TwilioPhone {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const phone = btn.dataset.phone;
-                document.getElementById('phoneNumber').value = phone;
+                const contactName = btn.dataset.contactName || 'Contacto';
+                
+                // Llenar el campo de número
+                const phoneNumberInput = document.getElementById('phoneNumber');
+                if (phoneNumberInput) {
+                    phoneNumberInput.value = phone;
+                }
+                
                 // Cambiar a la pestaña de llamadas
                 const callTab = document.querySelector('[data-bs-target="#navs-pills-call"]');
                 if (callTab) {
                     const tab = new bootstrap.Tab(callTab);
                     tab.show();
+                    
+                    // Esperar un momento para que la pestaña se active y luego iniciar la llamada
+                    setTimeout(() => {
+                        this.makeCall(phone);
+                        this.showSuccess(`Llamando a ${contactName}...`);
+                    }, 300);
+                } else {
+                    // Si no se puede cambiar de pestaña, llamar directamente
+                    this.makeCall(phone);
+                    this.showSuccess(`Llamando a ${contactName}...`);
                 }
             });
         });
