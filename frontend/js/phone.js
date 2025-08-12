@@ -19,6 +19,9 @@ class TwilioPhone {
         this.makeCall = this.makeCall.bind(this);
         this.acceptCall = this.acceptCall.bind(this);
         this.rejectCall = this.rejectCall.bind(this);
+        
+        // Configurar event delegation universal para el botón de colgar
+        this.setupUniversalHangupHandler();
     }
 
     /**
@@ -1366,6 +1369,31 @@ class TwilioPhone {
         };
         this.currentCall = mockCall; // Simular llamada activa
         this.showCallControlModal(mockCall);
+    }
+
+    /**
+     * Configura un event listener universal para el botón de colgar
+     * usando event delegation para manejar botones creados dinámicamente
+     */
+    setupUniversalHangupHandler() {
+        console.log('DEBUG: Configurando event listener universal para botón de colgar');
+        
+        // Usar event delegation en el document para capturar clics en cualquier botón de colgar
+        document.addEventListener('click', (event) => {
+            // Verificar si el elemento clickeado es el botón de colgar o está dentro de él
+            if (event.target.id === 'hangupButton' || 
+                event.target.closest('#hangupButton')) {
+                
+                console.log('DEBUG: Clic detectado en botón de colgar (event delegation)');
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Ejecutar la función de colgar
+                this.hangup();
+            }
+        });
+        
+        console.log('DEBUG: Event listener universal configurado exitosamente');
     }
 }
 
