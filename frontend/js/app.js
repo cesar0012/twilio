@@ -625,9 +625,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         window.twilioApp.init();
         
-        // Inicializar event listeners
-        window.twilioApp.initializeEventListeners();
-        
         console.log('Twilio App inicializada con Template UI');
     }, 100);
 });
