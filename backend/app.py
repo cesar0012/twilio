@@ -84,31 +84,28 @@ def handle_calls():
     """
     Webhook para manejar llamadas entrantes y salientes
     """
+    # Depuración de parámetros
+    print("\n--- INICIO DE WEBHOOK /handle_calls ---")
+    form = request.form
+    all_params = form.to_dict()
+    print(f"Parámetros recibidos de Twilio: {all_params}")
 
-    # --- PASO DE DEPURACIÓN MEJORADO ---
     response = VoiceResponse()
     try:
-        # Depuración de parámetros
-        print("\n--- INICIO DE WEBHOOK /handle_calls ---")
-        form = request.form
-        all_params = form.to_dict()
-        print(f"Parámetros recibidos de Twilio: {all_params}")
-
         number_to_dial = None
         caller_id = None
 
-        # 1) Flujo actual del frontend: envía PhoneNumber (destino) y FromNumber (callerId)
-        if form.get('PhoneNumber'):
+        # 1) Flujo actual del frontend: envía To (destino) y twilio_phone_number (callerId)
+        if form.get('To') and form.get('From', '').startswith('client:'):
+            number_to_dial = form.get('To')
+            caller_id = form.get('twilio_phone_number')
+            print(f"[DEBUG] Detectado flujo To/twilio_phone_number. Destino={number_to_dial}, CallerID={caller_id}")
+
+        # 2) Compatibilidad: para otros flujos que envíen PhoneNumber y FromNumber
+        elif form.get('PhoneNumber'):
             number_to_dial = form.get('PhoneNumber')
             caller_id = form.get('FromNumber')
-            print(f"[DEBUG] Detectado flujo PhoneNumber/FromNumber. Destino={number_to_dial}, CallerID={caller_id}")
-
-        # 2) Compatibilidad: si algún flujo antiguo envía To y From empieza con 'client:'
-        elif form.get('To') and form.get('From', '').startswith('client:'):
-            number_to_dial = form.get('To')
-            # Intentar obtener callerId de un parámetro personalizado o de env
-            caller_id = form.get('twilio_phone_number') or form.get('FromNumber')
-            print(f"[DEBUG] Flujo compatibilidad To/From(client). Destino={number_to_dial}, CallerID={caller_id}")
+            print(f"[DEBUG] Flujo compatibilidad PhoneNumber/FromNumber. Destino={number_to_dial}, CallerID={caller_id}")
 
         if number_to_dial:
             # Respaldo por si no llegó callerId desde el frontend
@@ -131,6 +128,7 @@ def handle_calls():
 
         print("--- FIN DE WEBHOOK ---\n")
         return str(response), 200, {'Content-Type': 'text/xml'}
+        
     except Exception as e:
         print(f"\n!!! ERROR DENTRO DEL BLOQUE TRY: {e} !!!\n")
         response = VoiceResponse()
