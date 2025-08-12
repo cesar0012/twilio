@@ -7,11 +7,6 @@ from twilio.twiml.voice_response import VoiceResponse
 from twilio.rest import Client as TwilioRestClient
 import os
 
-# --- CAMBIO CLAVE: Almacenamiento temporal de números de teléfono por cliente ---
-# Esto es una solución simple para un solo usuario. Para múltiples usuarios concurrentes,
-# se necesitaría un mecanismo más robusto como una base de datos o una caché (ej. Redis).
-client_phone_numbers = {}
-
 # --- CAMBIO 2: Configurar Flask para que sepa dónde está el frontend ---
 # La ruta '../frontend' le dice a Flask que suba un nivel desde 'backend' y entre a 'frontend'
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
@@ -23,12 +18,12 @@ def serve_index():
     # Esta función sirve el archivo principal de tu frontend.
     return send_from_directory(app.static_folder, 'index.html')
 
-# --- TU CÓDIGO EXISTENTE (CON CAMBIOS) ---
+# --- TU CÓDIGO EXISTENTE (SIN CAMBIOS) ---
 
 @app.route('/token', methods=['POST'])
 def generate_token():
     """
-    Genera un AccessToken de Twilio y guarda el número de teléfono del cliente.
+    Genera un AccessToken de Twilio usando las credenciales enviadas desde el frontend
     """
     try:
         print("[DEBUG] Recibida solicitud de token")
@@ -49,18 +44,13 @@ def generate_token():
             print("[ERROR] Faltan credenciales requeridas")
             return jsonify({'error': 'Faltan credenciales requeridas'}), 400
         
-        # --- CAMBIO CLAVE: Asociar el número de teléfono con la identidad del cliente ---
-        identity = 'browser_client'
-        client_phone_numbers[identity] = twilio_phone_number
-        print(f"[DEBUG] Número {twilio_phone_number} asociado al cliente '{identity}'")
-
         print("[DEBUG] Creando AccessToken...")
         # Crear AccessToken
         token = AccessToken(
             account_sid,
             api_key_sid,
             api_key_secret,
-            identity=identity
+            identity='browser_client'
         )
         
         print("[DEBUG] Creando VoiceGrant...")
@@ -79,7 +69,7 @@ def generate_token():
         
         return jsonify({
             'token': jwt_token,
-            'identity': identity
+            'identity': 'browser_client'
         })
         
     except Exception as e:
@@ -92,7 +82,7 @@ def generate_token():
 @app.route('/handle_calls', methods=['POST'])
 def handle_calls():
     """
-    Webhook para manejar llamadas. Usa el número guardado para llamadas salientes.
+    Webhook para manejar llamadas entrantes y salientes
     """
 
     # --- PASO DE DEPURACIÓN MEJORADO ---
@@ -103,44 +93,38 @@ def handle_calls():
     # ----------------------------------------
 
     response = VoiceResponse()
-    try:
-        to_param = request.form.get('To')
-        from_param = request.form.get('From')
+    
+    # El parámetro 'From' nos dice de dónde viene la llamada.
+    # Si viene de 'client:browser_client', es una llamada saliente desde nuestra app.
+    from_param = request.form.get('From')
 
-        if to_param and to_param.startswith('client:'):
-            # Llamada ENTRANTE a un cliente específico.
-            dial = response.dial()
-            dial.client(to_param.split(':')[1])
-        elif from_param and from_param.startswith('client:'):
-            # Llamada SALIENTE desde un cliente.
-            number_to_dial = to_param
-            
-            # --- CAMBIO CLAVE: Recuperar el callerId guardado ---
-            client_identity = from_param.split(':')[1]
-            caller_id = client_phone_numbers.get(client_identity)
+    if from_param == 'client:browser_client':
+        # Es una llamada SALIENTE desde el navegador.
+        # Los parámetros personalizados que enviamos desde el frontend con device.connect()
+        # llegan con el prefijo 'Parameter'.
+        
+        number_to_dial = request.form.get('ParameterPhoneNumber')
+        caller_id = request.form.get('ParameterFromNumber')
 
-            if not caller_id:
-                print(f"[ERROR] No se encontró un número de teléfono para el cliente '{client_identity}'")
-                response.say('Error de configuración: no se pudo encontrar el número de teléfono para este cliente.')
-                response.hangup()
-                return str(response), 200, {'Content-Type': 'text/xml'}
+        print(f"Llamada SALIENTE detectada. Número a marcar: {number_to_dial}, Caller ID: {caller_id}")
 
-            print(f"[DEBUG] Usando callerId '{caller_id}' para la llamada saliente a '{number_to_dial}'")
+        if number_to_dial and caller_id:
+            # Usamos <Dial> para conectar la llamada a un número de teléfono.
+            # 'callerId' es el número de Twilio que se mostrará al destinatario.
             dial = response.dial(caller_id=caller_id)
             dial.number(number_to_dial)
         else:
-            # Llamada entrante a un número de Twilio. Reenviar al cliente del navegador.
-            dial = response.dial()
-            dial.client('browser_client')
+            response.say("Error: No se pudo determinar el número de destino o el caller ID para la llamada saliente.")
+            print("ERROR: Faltan ParameterPhoneNumber o ParameterFromNumber en la solicitud.")
 
-        return str(response), 200, {'Content-Type': 'text/xml'}
-        
-    except Exception as e:
-        print(f"\n!!! ERROR DENTRO DEL BLOQUE TRY: {e} !!!\n")
-        response = VoiceResponse()
-        response.say('Lo sentimos, ha ocurrido un error. La llamada será terminada.')
-        response.hangup()
-        return str(response), 200, {'Content-Type': 'text/xml'}
+    else:
+        # Es una llamada ENTRANTE a uno de nuestros números de Twilio.
+        # La conectamos a nuestro cliente del navegador.
+        print(f"Llamada ENTRANTE detectada desde: {from_param}. Conectando a 'browser_client'.")
+        dial = response.dial()
+        dial.client('browser_client')
+
+    return str(response), 200, {'Content-Type': 'text/xml'}
 
 
 @app.route('/sms', methods=['POST'])
