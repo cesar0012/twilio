@@ -7,6 +7,11 @@ from twilio.twiml.voice_response import VoiceResponse
 from twilio.rest import Client as TwilioRestClient
 import os
 
+# --- CAMBIO CLAVE: Almacenamiento temporal de números de teléfono por cliente ---
+# Esto es una solución simple para un solo usuario. Para múltiples usuarios concurrentes,
+# se necesitaría un mecanismo más robusto como una base de datos o una caché (ej. Redis).
+client_phone_numbers = {}
+
 # --- CAMBIO 2: Configurar Flask para que sepa dónde está el frontend ---
 # La ruta '../frontend' le dice a Flask que suba un nivel desde 'backend' y entre a 'frontend'
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
@@ -18,12 +23,12 @@ def serve_index():
     # Esta función sirve el archivo principal de tu frontend.
     return send_from_directory(app.static_folder, 'index.html')
 
-# --- TU CÓDIGO EXISTENTE (SIN CAMBIOS) ---
+# --- TU CÓDIGO EXISTENTE (CON CAMBIOS) ---
 
 @app.route('/token', methods=['POST'])
 def generate_token():
     """
-    Genera un AccessToken de Twilio usando las credenciales enviadas desde el frontend
+    Genera un AccessToken de Twilio y guarda el número de teléfono del cliente.
     """
     try:
         print("[DEBUG] Recibida solicitud de token")
@@ -44,13 +49,18 @@ def generate_token():
             print("[ERROR] Faltan credenciales requeridas")
             return jsonify({'error': 'Faltan credenciales requeridas'}), 400
         
+        # --- CAMBIO CLAVE: Asociar el número de teléfono con la identidad del cliente ---
+        identity = 'browser_client'
+        client_phone_numbers[identity] = twilio_phone_number
+        print(f"[DEBUG] Número {twilio_phone_number} asociado al cliente '{identity}'")
+
         print("[DEBUG] Creando AccessToken...")
         # Crear AccessToken
         token = AccessToken(
             account_sid,
             api_key_sid,
             api_key_secret,
-            identity='browser_client'
+            identity=identity
         )
         
         print("[DEBUG] Creando VoiceGrant...")
@@ -69,7 +79,7 @@ def generate_token():
         
         return jsonify({
             'token': jwt_token,
-            'identity': 'browser_client'
+            'identity': identity
         })
         
     except Exception as e:
@@ -82,7 +92,7 @@ def generate_token():
 @app.route('/handle_calls', methods=['POST'])
 def handle_calls():
     """
-    Webhook para manejar llamadas entrantes y salientes
+    Webhook para manejar llamadas. Usa el número guardado para llamadas salientes.
     """
 
     # --- PASO DE DEPURACIÓN MEJORADO ---
@@ -94,39 +104,32 @@ def handle_calls():
 
     response = VoiceResponse()
     try:
-        # Si la llamada viene del navegador (identificada por 'client:'), es una llamada SALIENTE
-        # Extraer los parámetros 'To' y 'From' de la solicitud de Twilio
         to_param = request.form.get('To')
         from_param = request.form.get('From')
 
-        # Si 'To' es un número de teléfono, es una llamada saliente desde el cliente.
-        # La TwiML App debería haber sido configurada con un 'Request URL' que maneje esto.
-        # Twilio convierte los parámetros de device.connect() en parámetros de formulario POST.
         if to_param and to_param.startswith('client:'):
-            # Es una llamada ENTRANTE a un cliente específico.
+            # Llamada ENTRANTE a un cliente específico.
             dial = response.dial()
             dial.client(to_param.split(':')[1])
         elif from_param and from_param.startswith('client:'):
-            # Es una llamada SALIENTE desde un cliente.
-            # El 'To' es el número de teléfono a marcar.
-            # El 'callerId' debe ser tu número de Twilio verificado, que debería estar en la TwiML App.
-            # Como no se pasa, lo tomaremos del `request.form.get('twilio_phone_number')` si existe.
-            # ¡Pero OJO! Los parámetros de `device.connect()` NO se pasan al webhook de la TwiML App.
-            # Se deben pasar en la URL del webhook o el `callerId` debe estar en la TwiML App.
-            # Vamos a asumir que la TwiML App está configurada con el Caller ID.
-
-            # El `To` que viene de `device.connect` es el número a marcar.
+            # Llamada SALIENTE desde un cliente.
             number_to_dial = to_param
-            # El `callerId` lo debe poner la TwiML App. Twilio envía el `From` como el número verificado.
-            # En una llamada saliente desde el cliente, el `From` es el `client:identity`.
-            # Pero el `CallerId` de la petición al webhook es el número de Twilio.
-            caller_id = request.form.get('Caller')
+            
+            # --- CAMBIO CLAVE: Recuperar el callerId guardado ---
+            client_identity = from_param.split(':')[1]
+            caller_id = client_phone_numbers.get(client_identity)
 
+            if not caller_id:
+                print(f"[ERROR] No se encontró un número de teléfono para el cliente '{client_identity}'")
+                response.say('Error de configuración: no se pudo encontrar el número de teléfono para este cliente.')
+                response.hangup()
+                return str(response), 200, {'Content-Type': 'text/xml'}
+
+            print(f"[DEBUG] Usando callerId '{caller_id}' para la llamada saliente a '{number_to_dial}'")
             dial = response.dial(caller_id=caller_id)
             dial.number(number_to_dial)
         else:
-            # Es una llamada entrante a un número de Twilio.
-            # Reenviar al cliente del navegador.
+            # Llamada entrante a un número de Twilio. Reenviar al cliente del navegador.
             dial = response.dial()
             dial.client('browser_client')
 
