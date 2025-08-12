@@ -4,6 +4,7 @@ from flask_cors import CORS
 from twilio.jwt.access_token import AccessToken
 from twilio.jwt.access_token.grants import VoiceGrant
 from twilio.twiml.voice_response import VoiceResponse
+from twilio.rest import Client as TwilioRestClient
 import os
 
 # --- CAMBIO 2: Configurar Flask para que sepa dónde está el frontend ---
@@ -94,24 +95,24 @@ def handle_calls():
     response = VoiceResponse()
     try:
         # Si la llamada viene del navegador (identificada por 'client:'), es una llamada SALIENTE
-        if 'From' in request.form and request.form['From'].startswith('client:'):
-            
-            # Para llamadas salientes, Twilio nos pasa el número a marcar en el parámetro 'To'
-            # y el número de origen (nuestro número de Twilio) en el parámetro 'From'.
-            # Sin embargo, para la función dial, el 'caller_id' debe ser nuestro número de Twilio verificado.
-            # Lo obtenemos del parámetro 'From' que Twilio nos envía en el webhook.
-            # El 'caller_id' debe ser tu número de Twilio verificado.
-            # Lo obtenemos de las credenciales, no del 'request.form' porque 'From' es el cliente del navegador.
-            # Twilio espera que el 'To' sea el número de destino.
-            number_to_dial = request.form.get('To')
-            twilio_phone_number = request.form.get('twilio_phone_number')
+        if 'To' in request.form and request.form.get('To'):
+            # Determinar si es una llamada saliente (hacia un número) o entrante al cliente
+            # Si 'From' empieza con 'client:', es una llamada que se origina desde nuestro frontend.
+            if 'From' in request.form and request.form['From'].startswith('client:'):
+                # Llamada saliente desde el navegador
+                number_to_dial = request.form.get('To')
+                # El 'caller_id' debe ser el número de Twilio que se pasa desde el frontend
+                caller_id = request.form.get('twilio_phone_number')
 
-            if twilio_phone_number and number_to_dial:
-                dial = response.dial(caller_id=twilio_phone_number)
-                dial.number(number_to_dial)
+                if caller_id and number_to_dial:
+                    dial = response.dial(caller_id=caller_id)
+                    dial.number(number_to_dial)
+                else:
+                    response.say("Error: No se proporcionó el número de origen o destino para la llamada saliente.")
             else:
-                # Si falta alguno de los números, no se puede realizar la llamada
-                response.say("Error: No se proporcionó el número de origen o destino.")
+                # Llamada entrante a un número de Twilio, la reenviamos al cliente del navegador
+                dial = response.dial()
+                dial.client('browser_client')
 
         else: # Si no, es una llamada ENTRANTE
             # Para llamadas entrantes, simplemente conectamos la llamada al cliente del navegador
@@ -126,6 +127,49 @@ def handle_calls():
         response.say('Lo sentimos, ha ocurrido un error. La llamada será terminada.')
         response.hangup()
         return str(response), 200, {'Content-Type': 'text/xml'}
+
+
+@app.route('/sms', methods=['POST'])
+def send_sms():
+    """
+    Envía un mensaje SMS usando las credenciales y datos proporcionados.
+    """
+    try:
+        print("[DEBUG] Recibida solicitud de envío de SMS")
+        data = request.get_json()
+        print(f"[DEBUG] Datos recibidos para SMS: {data}")
+
+        # Extraer credenciales y datos del mensaje
+        account_sid = data.get('accountSid')
+        auth_token = data.get('authToken')
+        twilio_phone_number = data.get('twilioPhoneNumber')
+        recipient_phone_number = data.get('recipientPhoneNumber')
+        message_body = data.get('message')
+
+        # Validar que todos los datos necesarios estén presentes
+        if not all([account_sid, auth_token, twilio_phone_number, recipient_phone_number, message_body]):
+            print("[ERROR] Faltan datos para enviar el SMS")
+            return jsonify({'error': 'Faltan datos requeridos para el envío de SMS'}), 400
+
+        print(f"[DEBUG] Enviando SMS desde {twilio_phone_number} hacia {recipient_phone_number}")
+        # Inicializar el cliente de Twilio
+        client = TwilioRestClient(account_sid, auth_token)
+
+        # Enviar el mensaje
+        message = client.messages.create(
+            to=recipient_phone_number,
+            from_=twilio_phone_number,
+            body=message_body
+        )
+
+        print(f"[DEBUG] SMS enviado exitosamente. SID del mensaje: {message.sid}")
+        return jsonify({'success': True, 'message_sid': message.sid})
+
+    except Exception as e:
+        print(f"[ERROR] Error enviando SMS: {str(e)}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        return jsonify({'error': f'Error enviando SMS: {str(e)}'}), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():
