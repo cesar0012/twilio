@@ -183,6 +183,16 @@ class TwilioApp {
                     this.handleCall();
                 }
             });
+            
+            // Validar entrada del input - solo números y símbolos # *
+            this.elements.phoneNumberInput.addEventListener('input', (e) => {
+                const value = e.target.value;
+                const validChars = /^[0-9#*+\-\s()]*$/;
+                
+                if (!validChars.test(value)) {
+                    e.target.value = value.replace(/[^0-9#*+\-\s()]/g, '');
+                }
+            });
         }
     }
 
@@ -192,7 +202,7 @@ class TwilioApp {
     setupDialpad() {
         this.elements.dialpadButtons.forEach(button => {
             button.addEventListener('click', (e) => {
-                const digit = e.target.dataset.digit;
+                const digit = e.currentTarget.dataset.digit;
                 if (digit) {
                     this.addDigitToNumber(digit);
                     
