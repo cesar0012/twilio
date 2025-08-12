@@ -86,45 +86,57 @@ def handle_calls():
     """
 
     # --- PASO DE DEPURACIÓN MEJORADO ---
-    print("\n--- INICIO DE WEBHOOK /handle_calls ---")
-    all_params = request.form.to_dict()
-    print(f"Parámetros recibidos de Twilio: {all_params}")
-    print("--- FIN DE WEBHOOK ---\n")
-    # ----------------------------------------
-
     response = VoiceResponse()
-    
-    # El parámetro 'From' nos dice de dónde viene la llamada.
-    # Si viene de 'client:browser_client', es una llamada saliente desde nuestra app.
-    from_param = request.form.get('From')
+    try:
+        # Depuración de parámetros
+        print("\n--- INICIO DE WEBHOOK /handle_calls ---")
+        form = request.form
+        all_params = form.to_dict()
+        print(f"Parámetros recibidos de Twilio: {all_params}")
 
-    if from_param == 'client:browser_client':
-        # Es una llamada SALIENTE desde el navegador.
-        # Los parámetros personalizados que enviamos desde el frontend con device.connect()
-        # llegan con el prefijo 'Parameter'.
-        
-        number_to_dial = request.form.get('ParameterPhoneNumber')
-        caller_id = request.form.get('ParameterFromNumber')
+        number_to_dial = None
+        caller_id = None
 
-        print(f"Llamada SALIENTE detectada. Número a marcar: {number_to_dial}, Caller ID: {caller_id}")
+        # 1) Flujo actual del frontend: envía PhoneNumber (destino) y FromNumber (callerId)
+        if form.get('PhoneNumber'):
+            number_to_dial = form.get('PhoneNumber')
+            caller_id = form.get('FromNumber')
+            print(f"[DEBUG] Detectado flujo PhoneNumber/FromNumber. Destino={number_to_dial}, CallerID={caller_id}")
 
-        if number_to_dial and caller_id:
-            # Usamos <Dial> para conectar la llamada a un número de teléfono.
-            # 'callerId' es el número de Twilio que se mostrará al destinatario.
-            dial = response.dial(caller_id=caller_id)
-            dial.number(number_to_dial)
+        # 2) Compatibilidad: si algún flujo antiguo envía To y From empieza con 'client:'
+        elif form.get('To') and form.get('From', '').startswith('client:'):
+            number_to_dial = form.get('To')
+            # Intentar obtener callerId de un parámetro personalizado o de env
+            caller_id = form.get('twilio_phone_number') or form.get('FromNumber')
+            print(f"[DEBUG] Flujo compatibilidad To/From(client). Destino={number_to_dial}, CallerID={caller_id}")
+
+        if number_to_dial:
+            # Respaldo por si no llegó callerId desde el frontend
+            if not caller_id:
+                caller_id = os.environ.get('TWILIO_PHONE_NUMBER') or os.environ.get('TWILIO_CALLER_ID')
+                print(f"[DEBUG] CallerID no proporcionado; usando respaldo de entorno: {caller_id}")
+
+            if not caller_id:
+                print("[ERROR] No hay Caller ID disponible para marcar a PSTN")
+                response.say("Error: No hay Caller ID configurado.")
+            else:
+                print(f"[DEBUG] Marcando a {number_to_dial} con callerId {caller_id}")
+                dial = response.dial(caller_id=caller_id)
+                dial.number(number_to_dial)
         else:
-            response.say("Error: No se pudo determinar el número de destino o el caller ID para la llamada saliente.")
-            print("ERROR: Faltan ParameterPhoneNumber o ParameterFromNumber en la solicitud.")
+            # Si no se recibió número destino, tratamos como llamada entrante a nuestro número de Twilio
+            print("[DEBUG] No se detectó número destino; conectando llamada entrante al cliente del navegador.")
+            dial = response.dial()
+            dial.client('browser_client')
 
-    else:
-        # Es una llamada ENTRANTE a uno de nuestros números de Twilio.
-        # La conectamos a nuestro cliente del navegador.
-        print(f"Llamada ENTRANTE detectada desde: {from_param}. Conectando a 'browser_client'.")
-        dial = response.dial()
-        dial.client('browser_client')
-
-    return str(response), 200, {'Content-Type': 'text/xml'}
+        print("--- FIN DE WEBHOOK ---\n")
+        return str(response), 200, {'Content-Type': 'text/xml'}
+    except Exception as e:
+        print(f"\n!!! ERROR DENTRO DEL BLOQUE TRY: {e} !!!\n")
+        response = VoiceResponse()
+        response.say('Lo sentimos, ha ocurrido un error. La llamada será terminada.')
+        response.hangup()
+        return str(response), 200, {'Content-Type': 'text/xml'}
 
 
 @app.route('/sms', methods=['POST'])
