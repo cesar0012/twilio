@@ -7,8 +7,9 @@ WORKDIR /app
 # Copiamos TODO el contenido del proyecto (backend y frontend) al contenedor
 COPY . .
 
-# Instalamos las dependencias de Python que están en backend/requirements.txt
-RUN pip install --no-cache-dir -r backend/requirements.txt
+# Actualizamos pip e instalamos las dependencias de Python que están en backend/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r backend/requirements.txt
 
 # Exponemos el puerto en el que Gunicorn se ejecutará
 EXPOSE 3000
