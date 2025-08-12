@@ -95,27 +95,38 @@ def handle_calls():
     response = VoiceResponse()
     try:
         # Si la llamada viene del navegador (identificada por 'client:'), es una llamada SALIENTE
-        if 'To' in request.form and request.form.get('To'):
-            # Determinar si es una llamada saliente (hacia un número) o entrante al cliente
-            # Si 'From' empieza con 'client:', es una llamada que se origina desde nuestro frontend.
-            if 'From' in request.form and request.form['From'].startswith('client:'):
-                # Llamada saliente desde el navegador
-                number_to_dial = request.form.get('To')
-                # El 'caller_id' debe ser el número de Twilio que se pasa desde el frontend
-                caller_id = request.form.get('twilio_phone_number')
+        # Extraer los parámetros 'To' y 'From' de la solicitud de Twilio
+        to_param = request.form.get('To')
+        from_param = request.form.get('From')
 
-                if caller_id and number_to_dial:
-                    dial = response.dial(caller_id=caller_id)
-                    dial.number(number_to_dial)
-                else:
-                    response.say("Error: No se proporcionó el número de origen o destino para la llamada saliente.")
-            else:
-                # Llamada entrante a un número de Twilio, la reenviamos al cliente del navegador
-                dial = response.dial()
-                dial.client('browser_client')
+        # Si 'To' es un número de teléfono, es una llamada saliente desde el cliente.
+        # La TwiML App debería haber sido configurada con un 'Request URL' que maneje esto.
+        # Twilio convierte los parámetros de device.connect() en parámetros de formulario POST.
+        if to_param and to_param.startswith('client:'):
+            # Es una llamada ENTRANTE a un cliente específico.
+            dial = response.dial()
+            dial.client(to_param.split(':')[1])
+        elif from_param and from_param.startswith('client:'):
+            # Es una llamada SALIENTE desde un cliente.
+            # El 'To' es el número de teléfono a marcar.
+            # El 'callerId' debe ser tu número de Twilio verificado, que debería estar en la TwiML App.
+            # Como no se pasa, lo tomaremos del `request.form.get('twilio_phone_number')` si existe.
+            # ¡Pero OJO! Los parámetros de `device.connect()` NO se pasan al webhook de la TwiML App.
+            # Se deben pasar en la URL del webhook o el `callerId` debe estar en la TwiML App.
+            # Vamos a asumir que la TwiML App está configurada con el Caller ID.
 
-        else: # Si no, es una llamada ENTRANTE
-            # Para llamadas entrantes, simplemente conectamos la llamada al cliente del navegador
+            # El `To` que viene de `device.connect` es el número a marcar.
+            number_to_dial = to_param
+            # El `callerId` lo debe poner la TwiML App. Twilio envía el `From` como el número verificado.
+            # En una llamada saliente desde el cliente, el `From` es el `client:identity`.
+            # Pero el `CallerId` de la petición al webhook es el número de Twilio.
+            caller_id = request.form.get('Caller')
+
+            dial = response.dial(caller_id=caller_id)
+            dial.number(number_to_dial)
+        else:
+            # Es una llamada entrante a un número de Twilio.
+            # Reenviar al cliente del navegador.
             dial = response.dial()
             dial.client('browser_client')
 
