@@ -57,12 +57,13 @@ class TwilioApp {
         this.elements = {
             // Formulario de credenciales
             credentialsForm: document.getElementById('credentials-form'),
-            accountSid: document.getElementById('accountSid'),
-            authToken: document.getElementById('authToken'),
-            apiKeySid: document.getElementById('apiKeySid'),
-            apiKeySecret: document.getElementById('apiKeySecret'),
-            twimlAppSid: document.getElementById('twimlAppSid'),
-            twilioPhoneNumber: document.getElementById('twilioPhoneNumber'),
+            accountSid: document.getElementById('account-sid'),
+            authToken: document.getElementById('auth-token'),
+            apiKeySid: document.getElementById('api-key-sid'),
+            apiKeySecret: document.getElementById('api-key-secret'),
+            twimlAppSid: document.getElementById('twiml-app-sid'),
+            identity: document.getElementById('identity'),
+            twilioPhoneNumber: document.getElementById('twilio-phone-number'),
             
             // Controles de conexión
             connectButton: document.getElementById('connect-button'),
@@ -80,17 +81,27 @@ class TwilioApp {
             speakerButton: document.getElementById('speaker-button'),
             
             // Dialpad
-            dialpadToggle: document.getElementById('dialpad-toggle'),
-            dialpadContainer: document.getElementById('dialpad-container'),
             dialpadButtons: document.querySelectorAll('.dialpad-btn'),
+            clearNumberButton: document.getElementById('clear-number'),
             
             // Llamadas entrantes
             acceptButton: document.getElementById('accept-call'),
             rejectButton: document.getElementById('reject-call'),
+            incomingCallModal: document.getElementById('incomingCallModal'),
+            incomingCallNumber: document.getElementById('incoming-call-number'),
             
             // Estado y mensajes
             connectionStatus: document.getElementById('connection-status'),
-            statusMessages: document.getElementById('status-messages')
+            statusMessage: document.getElementById('status-message'),
+            callOverlay: document.getElementById('call-overlay'),
+            callStatus: document.getElementById('call-status'),
+            callTimer: document.getElementById('call-timer'),
+            
+            // Elementos adicionales del Template
+            autoConnect: document.getElementById('auto-connect'),
+            microphoneSelect: document.getElementById('microphone-select'),
+            speakerSelect: document.getElementById('speaker-select'),
+            volumeControl: document.getElementById('volume-control')
         };
     }
 
@@ -382,8 +393,8 @@ class TwilioApp {
      * Muestra un mensaje de éxito
      */
     showSuccess(message) {
-        if (this.elements.statusMessages) {
-            this.elements.statusMessages.innerHTML = `
+        if (this.elements.statusMessage) {
+            this.elements.statusMessage.innerHTML = `
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <i class="fas fa-check-circle"></i> ${message}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -396,8 +407,8 @@ class TwilioApp {
      * Muestra un mensaje de error
      */
     showError(message) {
-        if (this.elements.statusMessages) {
-            this.elements.statusMessages.innerHTML = `
+        if (this.elements.statusMessage) {
+            this.elements.statusMessage.innerHTML = `
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="fas fa-exclamation-triangle"></i> ${message}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -410,8 +421,8 @@ class TwilioApp {
      * Muestra un mensaje informativo
      */
     showInfo(message) {
-        if (this.elements.statusMessages) {
-            this.elements.statusMessages.innerHTML = `
+        if (this.elements.statusMessage) {
+            this.elements.statusMessage.innerHTML = `
                 <div class="alert alert-info alert-dismissible fade show" role="alert">
                     <i class="fas fa-info-circle"></i> ${message}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -424,11 +435,228 @@ class TwilioApp {
      * Limpia todos los mensajes
      */
     clearMessages() {
-        if (this.elements.statusMessages) {
-            this.elements.statusMessages.innerHTML = '';
+        if (this.elements.statusMessage) {
+            this.elements.statusMessage.innerHTML = '';
         }
     }
-}
+
+    /**
+     * Actualiza el estado de conexión en la UI
+     */
+    updateConnectionStatus(status, message) {
+        if (this.elements.connectionStatus) {
+            this.elements.connectionStatus.textContent = message;
+        }
+        
+        // Actualizar avatar status
+        const avatar = document.querySelector('.avatar');
+        if (avatar) {
+            avatar.className = status === 'connected' ? 
+                'avatar avatar-online' : 
+                'avatar avatar-offline';
+        }
+    }
+
+    /**
+     * Muestra información de llamada activa
+     */
+    showCallInfo(number, duration = '00:00') {
+        if (this.elements.callOverlay) {
+            this.elements.callOverlay.classList.remove('d-none');
+        }
+        
+        if (this.elements.callNumber) {
+            this.elements.callNumber.textContent = number;
+        }
+        
+        if (this.elements.callTimer) {
+            this.elements.callTimer.textContent = duration;
+        }
+        
+        if (this.elements.callStatus) {
+            this.elements.callStatus.textContent = 'Conectado';
+        }
+    }
+
+    /**
+     * Oculta información de llamada
+     */
+    hideCallInfo() {
+        if (this.elements.callOverlay) {
+            this.elements.callOverlay.classList.add('d-none');
+        }
+    }
+
+    /**
+     * Muestra llamada entrante
+     */
+    showIncomingCall(number) {
+        if (this.elements.incomingCallNumber) {
+            this.elements.incomingCallNumber.textContent = number;
+        }
+        
+        // Mostrar modal de llamada entrante
+        if (this.elements.incomingCallModal) {
+            const modal = new bootstrap.Modal(this.elements.incomingCallModal);
+            modal.show();
+        }
+    }
+
+    /**
+      * Oculta llamada entrante
+      */
+     hideIncomingCall() {
+         if (this.elements.incomingCallModal) {
+             const modal = bootstrap.Modal.getInstance(this.elements.incomingCallModal);
+             if (modal) {
+                 modal.hide();
+             }
+         }
+     }
+
+     /**
+      * Actualiza el estado de los botones de llamada
+      */
+     updateCallButtons(inCall) {
+         if (this.elements.callButton) {
+             this.elements.callButton.disabled = inCall;
+         }
+         
+         if (this.elements.hangupButton) {
+             this.elements.hangupButton.disabled = !inCall;
+         }
+     }
+
+     /**
+      * Muestra notificación toast
+      */
+     showNotification(message, type = 'info') {
+         const toastContainer = document.getElementById('notificationContainer');
+         const toastTemplate = document.getElementById('toastTemplate');
+         
+         if (toastContainer && toastTemplate) {
+             const toastClone = toastTemplate.content.cloneNode(true);
+             const toastElement = toastClone.querySelector('.toast');
+             const toastBody = toastClone.querySelector('.toast-body');
+             
+             toastBody.textContent = message;
+             toastElement.classList.add(`bg-${type}`);
+             
+             toastContainer.appendChild(toastClone);
+             
+             const toast = new bootstrap.Toast(toastElement);
+             toast.show();
+             
+             // Remover el toast después de que se oculte
+             toastElement.addEventListener('hidden.bs.toast', () => {
+                 toastElement.remove();
+             });
+         }
+     }
+
+     /**
+      * Inicializa el dialpad
+      */
+     initializeDialpad() {
+         const dialpadButtons = document.querySelectorAll('.dialpad-btn');
+         
+         dialpadButtons.forEach(button => {
+             button.addEventListener('click', (e) => {
+                 const digit = e.target.textContent.trim();
+                 if (this.elements.phoneNumber && digit) {
+                     this.elements.phoneNumber.value += digit;
+                 }
+             });
+         });
+         
+         // Botón de borrar
+         if (this.elements.clearNumberButton) {
+             this.elements.clearNumberButton.addEventListener('click', () => {
+                 if (this.elements.phoneNumber && this.elements.phoneNumber.value.length > 0) {
+                     this.elements.phoneNumber.value = this.elements.phoneNumber.value.slice(0, -1);
+                 }
+             });
+         }
+         
+         // Botón de limpiar todo
+         if (this.elements.clearAllButton) {
+             this.elements.clearAllButton.addEventListener('click', () => {
+                 if (this.elements.phoneNumber) {
+                     this.elements.phoneNumber.value = '';
+                 }
+             });
+         }
+     }
+
+     /**
+      * Inicializa los event listeners
+      */
+     initializeEventListeners() {
+         // Botón de llamada
+         if (this.elements.callButton) {
+             this.elements.callButton.addEventListener('click', () => {
+                 const number = this.elements.phoneNumber?.value;
+                 if (number && window.twilioPhone) {
+                     window.twilioPhone.makeCall(number);
+                 }
+             });
+         }
+         
+         // Botón de colgar
+         if (this.elements.hangupButton) {
+             this.elements.hangupButton.addEventListener('click', () => {
+                 if (window.twilioPhone) {
+                     window.twilioPhone.hangup();
+                 }
+             });
+         }
+         
+         // Botones de llamada entrante
+         if (this.elements.acceptCallButton) {
+             this.elements.acceptCallButton.addEventListener('click', () => {
+                 if (window.twilioPhone) {
+                     window.twilioPhone.acceptCall();
+                 }
+             });
+         }
+         
+         if (this.elements.rejectCallButton) {
+             this.elements.rejectCallButton.addEventListener('click', () => {
+                 if (window.twilioPhone) {
+                     window.twilioPhone.rejectCall();
+                 }
+             });
+         }
+         
+         // Controles de llamada
+         if (this.elements.muteButton) {
+             this.elements.muteButton.addEventListener('click', () => {
+                 if (window.twilioPhone) {
+                     window.twilioPhone.toggleMute();
+                 }
+             });
+         }
+         
+         if (this.elements.holdButton) {
+             this.elements.holdButton.addEventListener('click', () => {
+                 if (window.twilioPhone) {
+                     window.twilioPhone.toggleHold();
+                 }
+             });
+         }
+         
+         if (this.elements.speakerButton) {
+             this.elements.speakerButton.addEventListener('click', () => {
+                 if (window.twilioPhone) {
+                     window.twilioPhone.toggleSpeaker();
+                 }
+             });
+         }
+         
+         // Inicializar dialpad
+         this.initializeDialpad();
+     }
+ }
 
 // Inicializar la aplicación cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
@@ -440,6 +668,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Esperar un momento para que todos los scripts se carguen
     setTimeout(() => {
         window.twilioApp.init();
+        
+        // Inicializar event listeners
+        window.twilioApp.initializeEventListeners();
+        
+        console.log('Twilio App inicializada con Template UI');
     }, 100);
 });
 

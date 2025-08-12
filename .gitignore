@@ -74,3 +74,6 @@ node_modules/
 *.key
 *.crt
 *.cert
+
+# Template folder - archivos de plantilla
+Template/
