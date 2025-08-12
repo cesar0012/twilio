@@ -103,7 +103,12 @@ def handle_calls():
                 # Llamada saliente desde el navegador
                 number_to_dial = request.form.get('To')
                 # El 'caller_id' debe ser el número de Twilio que se pasa desde el frontend
-                caller_id = request.form.get('twilio_phone_number')
+                # Utilizar el número de Twilio configurado en variables de entorno
+                caller_id = os.getenv('TWILIO_PHONE_NUMBER')
+                if not caller_id:
+                    # Fallback: si From incluye un número E.164, úsalo
+                    from_param = request.form.get('From', '')
+                    caller_id = from_param if from_param.startswith('+') else None
 
                 if caller_id and number_to_dial:
                     dial = response.dial(caller_id=caller_id)
