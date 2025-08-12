@@ -10,7 +10,6 @@ class TwilioPhone {
         this.isConnected = false;
         this.isMuted = false;
         this.isOnHold = false;
-        this.isSpeakerOn = false;
         this.callTimer = null;
         this.callStartTime = null;
         this.backendUrl = 'https://twilio.neox.site'; // URL del backend Flask en VPS
@@ -732,40 +731,32 @@ class TwilioPhone {
             this.currentCall.mute(this.isMuted);
             this.updateMuteButton();
         }
-        return this.isMuted;
     }
 
     /**
      * Pone en espera/reanuda la llamada
      */
     toggleHold() {
-        // Nota: Hold no está directamente soportado en Twilio Client JS
-        // Se puede implementar usando mute como alternativa
-        this.toggleMute();
-        this.isOnHold = this.isMuted;
-        this.updateHoldButton();
-        return this.isOnHold;
-    }
-
-    /**
-     * Alterna el estado del altavoz
-     */
-    toggleSpeaker() {
-        this.isSpeakerOn = !this.isSpeakerOn;
-        
-        if (this.currentCall && this.currentCall.getRemoteStream) {
-            try {
-                const audioElement = document.querySelector('audio');
-                if (audioElement) {
-                    audioElement.setSinkId = audioElement.setSinkId || function() {};
-                    // En navegadores que soportan setSinkId, se puede cambiar el dispositivo de salida
+        if (this.currentCall) {
+            this.isOnHold = !this.isOnHold;
+            const holdButton = document.getElementById('holdButton');
+            
+            if (this.isOnHold) {
+                // Poner en retención (silenciar ambos lados)
+                this.currentCall.mute(true);
+                if (holdButton) {
+                    holdButton.classList.add('active');
                 }
-            } catch (error) {
-                console.warn('Speaker toggle not fully supported in this browser:', error);
+                this.showSuccess('Llamada en retención');
+            } else {
+                // Quitar de retención
+                this.currentCall.mute(this.isMuted); // Restaurar estado de mute original
+                if (holdButton) {
+                    holdButton.classList.remove('active');
+                }
+                this.showSuccess('Llamada reanudada');
             }
         }
-        
-        return this.isSpeakerOn;
     }
 
     /**
@@ -798,8 +789,8 @@ class TwilioPhone {
         console.log('DEBUG: onCallConnected ejecutado');
         console.log('Llamada conectada exitosamente');
         
-        console.log('DEBUG: Mostrando información de llamada');
-        this.showCallInfo(call);
+        console.log('DEBUG: Mostrando modal de control de llamada');
+        this.showCallControlModal(call);
         
         console.log('DEBUG: Iniciando timer de llamada');
         this.startCallTimer();
@@ -818,8 +809,8 @@ class TwilioPhone {
         console.log('DEBUG: onCallDisconnected ejecutado');
         console.log('Llamada desconectada');
         
-        console.log('DEBUG: Ocultando información de llamada');
-        this.hideCallInfo();
+        console.log('DEBUG: Ocultando modal de control de llamada');
+        this.hideCallControlModal();
         this.hideIncomingCall();
         
         console.log('DEBUG: Deteniendo timer de llamada');
@@ -901,9 +892,14 @@ class TwilioPhone {
      * Muestra información de llamada activa
      */
     showCallInfo(call) {
-        if (window.twilioApp) {
+        const callInfo = document.getElementById('call-info');
+        const callNumber = document.getElementById('call-number');
+        
+        if (callInfo && callNumber) {
             const remoteNumber = call.parameters.To || call.parameters.From || 'Desconocido';
-            window.twilioApp.showCallInfo(remoteNumber, '00:00');
+            callNumber.textContent = remoteNumber;
+            callInfo.classList.remove('d-none');
+            callInfo.classList.add('fade-in');
         }
     }
 
@@ -911,8 +907,9 @@ class TwilioPhone {
      * Oculta información de llamada
      */
     hideCallInfo() {
-        if (window.twilioApp) {
-            window.twilioApp.hideCallInfo();
+        const callInfo = document.getElementById('call-info');
+        if (callInfo) {
+            callInfo.classList.add('d-none');
         }
     }
 
@@ -984,6 +981,7 @@ class TwilioPhone {
      * Actualiza el botón de silenciar
      */
     updateMuteButton() {
+        // Actualizar botón original
         const muteButton = document.getElementById('mute-button');
         if (muteButton) {
             if (this.isMuted) {
@@ -992,6 +990,16 @@ class TwilioPhone {
             } else {
                 muteButton.innerHTML = '<i class="fas fa-microphone"></i> Silenciar';
                 muteButton.classList.remove('control-muted');
+            }
+        }
+        
+        // Actualizar botón del modal
+        const modalMuteButton = document.getElementById('muteButton');
+        if (modalMuteButton) {
+            if (this.isMuted) {
+                modalMuteButton.classList.add('active');
+            } else {
+                modalMuteButton.classList.remove('active');
             }
         }
     }
@@ -1029,6 +1037,216 @@ class TwilioPhone {
             });
         } else {
             console.error('Error:', message);
+        }
+    }
+
+    /**
+     * Muestra el modal de control de llamadas
+     */
+    showCallControlModal(call) {
+        const modal = document.getElementById('callControlModal');
+        const titleElement = document.getElementById('callControlTitle');
+        const numberElement = document.getElementById('callControlNumber');
+        
+        if (modal && titleElement && numberElement) {
+            // Obtener número de teléfono
+            const phoneNumber = call.parameters?.To || call.parameters?.From || 'Número desconocido';
+            
+            // Actualizar contenido del modal
+            titleElement.textContent = 'En llamada';
+            numberElement.textContent = phoneNumber;
+            
+            // Mostrar modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            
+            // Configurar event listeners para los controles
+            this.setupCallControlEventListeners();
+        }
+    }
+
+    /**
+     * Oculta el modal de control de llamadas
+     */
+    hideCallControlModal() {
+        const modal = document.getElementById('callControlModal');
+        if (modal) {
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+                bsModal.hide();
+            }
+        }
+        
+        // Limpiar el timer de duración
+        if (this.callDurationInterval) {
+            clearInterval(this.callDurationInterval);
+            this.callDurationInterval = null;
+        }
+    }
+
+    /**
+     * Configura los event listeners para los controles del modal
+     */
+    setupCallControlEventListeners() {
+        // Botón de colgar
+        const hangupButton = document.getElementById('hangupButton');
+        if (hangupButton) {
+            hangupButton.onclick = () => this.hangup();
+        }
+
+        // Botón de silenciar
+        const muteButton = document.getElementById('muteButton');
+        if (muteButton) {
+            muteButton.onclick = () => this.toggleMute();
+        }
+
+        // Botón de retener
+        const holdButton = document.getElementById('holdButton');
+        if (holdButton) {
+            holdButton.onclick = () => this.toggleHold();
+        }
+
+        // Botón de altavoz
+        const speakerButton = document.getElementById('speakerButton');
+        if (speakerButton) {
+            speakerButton.onclick = () => this.toggleSpeaker();
+        }
+
+        // Toggle del teclado
+        const keypadToggle = document.getElementById('keypadToggle');
+        if (keypadToggle) {
+            keypadToggle.onclick = () => this.toggleKeypad();
+        }
+
+        // Botones del dialpad DTMF
+        const dtmfButtons = document.querySelectorAll('#callDialpadGrid [data-dtmf]');
+        dtmfButtons.forEach(button => {
+            button.onclick = () => this.addDtmfDigit(button.dataset.dtmf);
+        });
+
+        // Botón enviar DTMF
+        const sendDtmfButton = document.getElementById('sendDtmfButton');
+        if (sendDtmfButton) {
+            sendDtmfButton.onclick = () => this.sendDtmf();
+        }
+
+        // Botón limpiar DTMF
+        const clearDtmfButton = document.getElementById('clearDtmfButton');
+        if (clearDtmfButton) {
+            clearDtmfButton.onclick = () => this.clearDtmf();
+        }
+    }
+
+    /**
+     * Alterna la visibilidad del teclado DTMF
+     */
+    toggleKeypad() {
+        const keypad = document.getElementById('callDialpad');
+        const keypadToggle = document.getElementById('keypadToggle');
+        
+        if (keypad && keypadToggle) {
+            if (keypad.style.display === 'none' || keypad.style.display === '') {
+                keypad.style.display = 'block';
+                keypadToggle.classList.add('active');
+            } else {
+                keypad.style.display = 'none';
+                keypadToggle.classList.remove('active');
+            }
+        }
+    }
+
+    /**
+     * Agrega un dígito al input DTMF
+     */
+    addDtmfDigit(digit) {
+        const dtmfInput = document.getElementById('dtmfInput');
+        if (dtmfInput) {
+            dtmfInput.value += digit;
+        }
+    }
+
+    /**
+     * Envía los tonos DTMF
+     */
+    sendDtmf() {
+        const dtmfInput = document.getElementById('dtmfInput');
+        if (dtmfInput && dtmfInput.value && this.currentCall) {
+            try {
+                this.currentCall.sendDigits(dtmfInput.value);
+                this.showSuccess(`Tonos DTMF enviados: ${dtmfInput.value}`);
+                this.clearDtmf();
+            } catch (error) {
+                console.error('Error enviando DTMF:', error);
+                this.showError('Error enviando tonos DTMF');
+            }
+        }
+    }
+
+    /**
+     * Limpia el input DTMF
+     */
+    clearDtmf() {
+        const dtmfInput = document.getElementById('dtmfInput');
+        if (dtmfInput) {
+            dtmfInput.value = '';
+        }
+    }
+
+
+
+    /**
+     * Alterna el estado del altavoz
+     */
+    toggleSpeaker() {
+        // Nota: Twilio Voice SDK no tiene control directo del altavoz
+        // Esta funcionalidad dependería de la implementación del navegador
+        const speakerButton = document.getElementById('speakerButton');
+        if (speakerButton) {
+            speakerButton.classList.toggle('active');
+            const isActive = speakerButton.classList.contains('active');
+            this.showSuccess(isActive ? 'Altavoz activado' : 'Altavoz desactivado');
+        }
+    }
+
+
+
+    /**
+     * Inicia el timer de duración de la llamada
+     */
+    startCallTimer() {
+        this.callStartTime = new Date();
+        this.updateCallDuration();
+        
+        this.callDurationInterval = setInterval(() => {
+            this.updateCallDuration();
+        }, 1000);
+    }
+
+    /**
+     * Detiene el timer de duración de la llamada
+     */
+    stopCallTimer() {
+        if (this.callDurationInterval) {
+            clearInterval(this.callDurationInterval);
+            this.callDurationInterval = null;
+        }
+        this.callStartTime = null;
+    }
+
+    /**
+     * Actualiza la duración de la llamada en el modal
+     */
+    updateCallDuration() {
+        const durationElement = document.getElementById('callDuration');
+        if (durationElement && this.callStartTime) {
+            const now = new Date();
+            const duration = Math.floor((now - this.callStartTime) / 1000);
+            
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            
+            const formattedDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            durationElement.textContent = formattedDuration;
         }
     }
 }

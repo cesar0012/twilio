@@ -93,7 +93,7 @@ class TwilioApp {
             // Estado y mensajes
             connectionStatus: document.getElementById('connection-status'),
             statusMessage: document.getElementById('status-message'),
-            activeCallModal: document.getElementById('activeCallModal'),
+            callOverlay: document.getElementById('call-overlay'),
             callStatus: document.getElementById('call-status'),
             callTimer: document.getElementById('call-timer'),
             
@@ -152,19 +152,13 @@ class TwilioApp {
         // Controles de llamada activa
         if (this.elements.muteButton) {
             this.elements.muteButton.addEventListener('click', () => {
-                this.toggleMute();
+                window.twilioPhone.toggleMute();
             });
         }
         
         if (this.elements.holdButton) {
             this.elements.holdButton.addEventListener('click', () => {
-                this.toggleHold();
-            });
-        }
-        
-        if (this.elements.speakerButton) {
-            this.elements.speakerButton.addEventListener('click', () => {
-                this.toggleSpeaker();
+                window.twilioPhone.toggleHold();
             });
         }
         
@@ -183,22 +177,6 @@ class TwilioApp {
         if (this.elements.rejectButton) {
             this.elements.rejectButton.addEventListener('click', () => {
                 window.twilioPhone.rejectCall();
-            });
-        }
-
-        // Botón de dialpad toggle
-        const dialpadToggle = document.getElementById('dialpadToggle');
-        if (dialpadToggle) {
-            dialpadToggle.addEventListener('click', () => {
-                this.toggleDialpadInCall();
-            });
-        }
-
-        // Botón de agregar llamada
-        const addCallButton = document.getElementById('addCallButton');
-        if (addCallButton) {
-            addCallButton.addEventListener('click', () => {
-                this.showAddCallDialog();
             });
         }
         
@@ -533,96 +511,33 @@ class TwilioApp {
     }
 
     /**
-      * Muestra información de llamada activa
-      */
-     showCallInfo(number, duration = '00:00', contactName = null) {
-         if (this.elements.activeCallModal) {
-             const modal = new bootstrap.Modal(this.elements.activeCallModal);
-             modal.show();
-         }
-         
-         if (this.elements.callNumber) {
-             this.elements.callNumber.textContent = number;
-         }
-         
-         // Mostrar nombre del contacto si está disponible
-         const callContactName = document.getElementById('callContactName');
-         if (callContactName) {
-             callContactName.textContent = contactName || this.getContactName(number) || 'Contacto';
-         }
-         
-         if (this.elements.callTimer) {
-             this.elements.callTimer.textContent = duration;
-         }
-         
-         if (this.elements.callStatus) {
-             this.elements.callStatus.textContent = 'Conectado';
-         }
-         
-         // Iniciar timer de duración
-         this.startCallTimer();
-     }
-
-     /**
-      * Inicia el timer de duración de llamada
-      */
-     startCallTimer() {
-         this.callStartTime = Date.now();
-         this.callTimerInterval = setInterval(() => {
-             this.updateCallTimer();
-         }, 1000);
-     }
-
-     /**
-      * Actualiza el timer de duración de llamada
-      */
-     updateCallTimer() {
-         if (!this.callStartTime) return;
-         
-         const elapsed = Math.floor((Date.now() - this.callStartTime) / 1000);
-         const minutes = Math.floor(elapsed / 60);
-         const seconds = elapsed % 60;
-         
-         const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-         
-         if (this.elements.callTimer) {
-             this.elements.callTimer.textContent = formattedTime;
-         }
-     }
-
-     /**
-      * Detiene el timer de duración de llamada
-      */
-     stopCallTimer() {
-         if (this.callTimerInterval) {
-             clearInterval(this.callTimerInterval);
-             this.callTimerInterval = null;
-         }
-         this.callStartTime = null;
-     }
-
-    /**
-      * Oculta información de llamada
-      */
-     hideCallInfo() {
-         // Detener el timer
-         this.stopCallTimer();
-         
-         if (this.elements.activeCallModal) {
-             const modal = bootstrap.Modal.getInstance(this.elements.activeCallModal);
-             if (modal) {
-                 modal.hide();
-             }
-         }
-     }
-
-    /**
-     * Obtiene el nombre del contacto por número
+     * Muestra información de llamada activa
      */
-    getContactName(number) {
-        const contacts = JSON.parse(localStorage.getItem('contacts') || '[]');
-        const contact = contacts.find(c => c.phone === number);
-        return contact ? contact.name : null;
+    showCallInfo(number, duration = '00:00') {
+        if (this.elements.callOverlay) {
+            this.elements.callOverlay.classList.remove('d-none');
+        }
+        
+        if (this.elements.callNumber) {
+            this.elements.callNumber.textContent = number;
+        }
+        
+        if (this.elements.callTimer) {
+            this.elements.callTimer.textContent = duration;
+        }
+        
+        if (this.elements.callStatus) {
+            this.elements.callStatus.textContent = 'Conectado';
+        }
+    }
+
+    /**
+     * Oculta información de llamada
+     */
+    hideCallInfo() {
+        if (this.elements.callOverlay) {
+            this.elements.callOverlay.classList.add('d-none');
+        }
     }
 
     /**
@@ -631,13 +546,6 @@ class TwilioApp {
     showIncomingCall(number) {
         if (this.elements.incomingCallNumber) {
             this.elements.incomingCallNumber.textContent = number;
-        }
-        
-        // Mostrar nombre del contacto si está disponible
-        const incomingContactName = document.getElementById('incomingContactName');
-        if (incomingContactName) {
-            const contactName = this.getContactName(number);
-            incomingContactName.textContent = contactName || 'Llamada Entrante';
         }
         
         // Mostrar modal de llamada entrante
@@ -705,90 +613,6 @@ class TwilioApp {
                      this.elements.phoneNumber.value = '';
                  }
              });
-         }
-     }
-
-     /**
-      * Alterna el dialpad durante una llamada
-      */
-     toggleDialpadInCall() {
-         // Por ahora mostrar un mensaje, se puede implementar un dialpad en el modal
-         this.showToast('Dialpad', 'Funcionalidad de dialpad en llamada próximamente', 'info');
-     }
-
-     /**
-      * Muestra diálogo para agregar llamada
-      */
-     showAddCallDialog() {
-         // Por ahora mostrar un mensaje, se puede implementar funcionalidad de conferencia
-         this.showToast('Agregar Llamada', 'Funcionalidad de conferencia próximamente', 'info');
-     }
-
-     /**
-      * Alterna el estado de mute
-      */
-     toggleMute() {
-         if (window.twilioPhone && window.twilioPhone.currentCall) {
-             const isMuted = window.twilioPhone.toggleMute();
-             
-             // Actualizar UI del botón
-              if (this.elements.muteButton) {
-                  const icon = this.elements.muteButton.querySelector('i');
-                  if (icon) {
-                      icon.className = isMuted ? 'bx bx-microphone-off bx-sm' : 'bx bx-microphone bx-sm';
-                  }
-                  this.elements.muteButton.classList.toggle('btn-danger', isMuted);
-                  this.elements.muteButton.classList.toggle('btn-outline-secondary', !isMuted);
-              }
-             
-             this.showInfo(isMuted ? 'Micrófono silenciado' : 'Micrófono activado');
-         }
-     }
-
-     /**
-      * Alterna el estado de hold
-      */
-     toggleHold() {
-         if (window.twilioPhone && window.twilioPhone.currentCall) {
-             const isOnHold = window.twilioPhone.toggleHold();
-             
-             // Actualizar UI del botón
-              if (this.elements.holdButton) {
-                  const icon = this.elements.holdButton.querySelector('i');
-                  if (icon) {
-                      icon.className = isOnHold ? 'bx bx-play bx-sm' : 'bx bx-pause bx-sm';
-                  }
-                  this.elements.holdButton.classList.toggle('btn-warning', isOnHold);
-                  this.elements.holdButton.classList.toggle('btn-outline-secondary', !isOnHold);
-              }
-             
-             // Actualizar estado de la llamada
-             if (this.elements.callStatus) {
-                 this.elements.callStatus.textContent = isOnHold ? 'En espera' : 'Conectado';
-             }
-             
-             this.showInfo(isOnHold ? 'Llamada en espera' : 'Llamada reanudada');
-         }
-     }
-
-     /**
-      * Alterna el estado del speaker
-      */
-     toggleSpeaker() {
-         if (window.twilioPhone) {
-             const isSpeakerOn = window.twilioPhone.toggleSpeaker();
-             
-             // Actualizar UI del botón
-              if (this.elements.speakerButton) {
-                  const icon = this.elements.speakerButton.querySelector('i');
-                  if (icon) {
-                      icon.className = isSpeakerOn ? 'bx bx-volume-full bx-sm' : 'bx bx-volume-low bx-sm';
-                  }
-                  this.elements.speakerButton.classList.toggle('btn-info', isSpeakerOn);
-                  this.elements.speakerButton.classList.toggle('btn-outline-secondary', !isSpeakerOn);
-              }
-             
-             this.showInfo(isSpeakerOn ? 'Altavoz activado' : 'Altavoz desactivado');
          }
      }
 

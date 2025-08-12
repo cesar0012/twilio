@@ -487,98 +487,25 @@ body {
   color: var(--primary-color);
 }
 
-/* Call Modal Styles */
-.call-modal-content {
-  border: none;
-  border-radius: 1.5rem;
-  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
-  background: var(--white-color);
-}
-
-.call-avatar {
-  position: relative;
-}
-
-.avatar-xxl {
-  width: 5rem;
-  height: 5rem;
-}
-
-.avatar-xxl .avatar-initial {
-  font-size: 2rem;
-}
-
-.call-contact-info h4 {
-  font-weight: 600;
-  color: var(--dark-color);
-}
-
-.call-duration h2 {
-  font-family: 'Courier New', monospace;
-  font-weight: 700;
-  font-size: 2.5rem;
-}
-
-.btn-call-control {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
+/* Call Overlay */
+.call-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--primary-color), #0226a3);
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-width: 2px;
-  transition: all 0.3s ease;
+  color: var(--white-color);
 }
 
-.btn-call-control:hover {
-  transform: scale(1.1);
-}
-
-.btn-call-action {
-  width: 4rem;
-  height: 4rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  transition: all 0.3s ease;
-}
-
-.btn-call-action:hover {
-  transform: scale(1.1);
-}
-
-/* Pulse Animation for Incoming Calls */
-.pulse-animation {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
-  }
-  70% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
-  }
-}
-
-.incoming-call-animation {
-  position: relative;
-}
-
-.incoming-call-actions .btn-call-action {
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-}
-
-.call-controls-grid .btn-call-control {
-  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+.call-overlay-content {
+  text-align: center;
+  max-width: 400px;
+  padding: 2rem;
 }
 
 .call-info h5 {
@@ -989,4 +916,169 @@ body {
 .status-indicator.connecting {
   background-color: #ffc107;
   animation: pulse 1s infinite;
+}
+
+/* =============================================================================
+   Call Control Modal Styles
+============================================================================= */
+
+/* Call Control Modal */
+.modal#callControlModal .modal-content {
+  border: none;
+  border-radius: var(--border-radius-xl);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal#callControlModal .modal-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #4a69bd 100%);
+  color: var(--white-color);
+  border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
+}
+
+.modal#callControlModal .avatar-initial {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: var(--white-color) !important;
+}
+
+.modal#callControlModal .modal-title,
+.modal#callControlModal .text-muted {
+  color: var(--white-color) !important;
+}
+
+/* Call Control Buttons */
+.modal#callControlModal .btn.rounded-circle {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  border-width: 2px;
+}
+
+.modal#callControlModal .btn.rounded-circle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.modal#callControlModal .btn.rounded-circle.active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--white-color);
+}
+
+/* Mute Button Active State */
+.modal#callControlModal #muteButton.active {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: var(--white-color);
+}
+
+.modal#callControlModal #muteButton.active i::before {
+  content: "\e9d9"; /* bx-microphone-off */
+}
+
+/* Hold Button Active State */
+.modal#callControlModal #holdButton.active {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #000;
+}
+
+.modal#callControlModal #holdButton.active i::before {
+  content: "\e9c8"; /* bx-play */
+}
+
+/* Speaker Button Active State */
+.modal#callControlModal #speakerButton.active {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+  color: var(--white-color);
+}
+
+/* Keypad Toggle Active State */
+.modal#callControlModal #keypadToggle.active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--white-color);
+}
+
+/* Call Duration Badge */
+.modal#callControlModal #callDuration {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius-lg);
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: var(--white-color) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* DTMF Dialpad */
+.modal#callControlModal #callDialpad {
+  animation: slideDown 0.3s ease-out;
+}
+
+.modal#callControlModal #callDialpad .dialpad-btn {
+  height: 50px;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+}
+
+.modal#callControlModal #callDialpad .dialpad-btn:hover {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--white-color);
+  transform: translateY(-1px);
+}
+
+.modal#callControlModal #dtmfInput {
+  background-color: var(--light-gray);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  font-family: 'Courier New', monospace;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+}
+
+/* Slide Down Animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pulse Animation for Call Duration */
+@keyframes callPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.modal#callControlModal #callDuration.pulse {
+  animation: callPulse 2s infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modal#callControlModal .btn.rounded-circle {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .modal#callControlModal .d-flex.gap-3 {
+    gap: 1rem !important;
+  }
+  
+  .modal#callControlModal #callDialpad .col-8 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
 }
