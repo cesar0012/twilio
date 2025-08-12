@@ -57,13 +57,13 @@ class TwilioApp {
         this.elements = {
             // Formulario de credenciales
             credentialsForm: document.getElementById('credentials-form'),
-            accountSid: document.getElementById('account-sid'),
-            authToken: document.getElementById('auth-token'),
-            apiKeySid: document.getElementById('api-key-sid'),
-            apiKeySecret: document.getElementById('api-key-secret'),
-            twimlAppSid: document.getElementById('twiml-app-sid'),
+            accountSid: document.getElementById('accountSid'),
+            authToken: document.getElementById('authToken'),
+            apiKeySid: document.getElementById('apiKeySid'),
+            apiKeySecret: document.getElementById('apiKeySecret'),
+            twimlAppSid: document.getElementById('twimlAppSid'),
             identity: document.getElementById('identity'),
-            twilioPhoneNumber: document.getElementById('twilio-phone-number'),
+            twilioPhoneNumber: document.getElementById('twilioPhoneNumber'),
             
             // Controles de conexión
             connectButton: document.getElementById('connect-button'),
@@ -71,7 +71,7 @@ class TwilioApp {
             clearCredentialsButton: document.getElementById('clear-credentials'),
             
             // Controles de llamada
-            phoneNumberInput: document.getElementById('phone-number'),
+            phoneNumberInput: document.getElementById('phoneNumber'),
             callButton: document.getElementById('call-button'),
             hangupButton: document.getElementById('hangup-button'),
             
@@ -99,7 +99,6 @@ class TwilioApp {
             
             // Elementos adicionales del Template
             autoConnect: document.getElementById('connectionToggle'),
-            clearCredentialsButton: document.getElementById('clearCredentialsBtn'),
             microphoneSelect: document.getElementById('microphone-select'),
             speakerSelect: document.getElementById('speaker-select'),
             volumeControl: document.getElementById('volume-control')
@@ -423,46 +422,65 @@ class TwilioApp {
      * Muestra un mensaje de éxito
      */
     showSuccess(message) {
-        if (this.elements.statusMessage) {
-            this.elements.statusMessage.innerHTML = `
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle"></i> ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-        }
+        this.showNotification(message, 'success');
     }
 
     /**
      * Muestra un mensaje de error
      */
     showError(message) {
-        if (this.elements.statusMessage) {
-            this.elements.statusMessage.innerHTML = `
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-triangle"></i> ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-        }
+        this.showNotification(message, 'error');
     }
 
     /**
      * Muestra un mensaje informativo
      */
     showInfo(message) {
-        if (this.elements.statusMessage) {
-            this.elements.statusMessage.innerHTML = `
-                <div class="alert alert-info alert-dismissible fade show" role="alert">
-                    <i class="fas fa-info-circle"></i> ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-        }
+        this.showNotification(message, 'info');
     }
 
     /**
-     * Limpia todos los mensajes
+     * Muestra notificaciones usando SweetAlert2
+     */
+    showNotification(message, type = 'info') {
+        const swalConfig = {
+            text: message,
+            timer: 3000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end',
+            customClass: {
+                popup: 'colored-toast'
+            }
+        };
+        
+        switch(type) {
+            case 'success':
+                swalConfig.icon = 'success';
+                swalConfig.iconColor = '#7ac943';
+                break;
+            case 'error':
+            case 'danger':
+                swalConfig.icon = 'error';
+                swalConfig.iconColor = '#ff3e1d';
+                break;
+            case 'warning':
+                swalConfig.icon = 'warning';
+                swalConfig.iconColor = '#ffab00';
+                break;
+            case 'info':
+            default:
+                swalConfig.icon = 'info';
+                swalConfig.iconColor = '#032cc5';
+                break;
+        }
+        
+        Swal.fire(swalConfig);
+    }
+
+    /**
+     * Limpia todos los mensajes de estado
      */
     clearMessages() {
         if (this.elements.statusMessage) {
