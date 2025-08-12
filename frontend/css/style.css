@@ -709,6 +709,10 @@ body {
   color: var(--white-color);
 }
 
+img.app-brand-logo-img {
+    width: 50px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .content-wrapper {

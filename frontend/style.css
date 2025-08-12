@@ -714,7 +714,7 @@ div#callDialpad {
 }
 
 img.app-brand-logo-img {
-    width: 50px;
+    width: 50px !important;
 }
 
 /* Responsive Design */

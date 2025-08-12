@@ -720,7 +720,7 @@ class TwilioPhone {
             const errorMessage = this.handleTwilioError(error, 'makeCall');
             this.showError(errorMessage);
             
-            this.updateStatus('Conectado', 'connected');
+            this.updateStatus('Desconectado', 'disconnected');
             console.error('DEBUG: ========== FIN DE MANEJO DE ERROR ==========');
         }
     }
