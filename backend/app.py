@@ -103,10 +103,9 @@ def handle_calls():
             # El 'caller_id' debe ser tu número de Twilio verificado.
             # Lo obtenemos de las credenciales, no del 'request.form' porque 'From' es el cliente del navegador.
             # Twilio espera que el 'To' sea el número de destino.
-            caller_id = request.form.get('From')  # Este es el client:browser_client
             number_to_dial = request.form.get('To')
-            twilio_phone_number = request.form.get('twilio_phone_number') # Necesitamos pasarlo desde el frontend
-            
+            twilio_phone_number = request.form.get('twilio_phone_number')
+
             if twilio_phone_number and number_to_dial:
                 dial = response.dial(caller_id=twilio_phone_number)
                 dial.number(number_to_dial)
