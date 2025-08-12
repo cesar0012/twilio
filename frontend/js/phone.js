@@ -14,6 +14,11 @@ class TwilioPhone {
         this.callStartTime = null;
         this.backendUrl = 'https://twilio.neox.site'; // URL del backend Flask en VPS
         
+        // Variables para rastrear información de llamadas
+        this.currentCallPhoneNumber = null;
+        this.currentCallType = null;
+        this.currentCallStartTime = null;
+        
         // Bind methods
         this.setupDevice = this.setupDevice.bind(this);
         this.makeCall = this.makeCall.bind(this);
@@ -22,6 +27,9 @@ class TwilioPhone {
         
         // Configurar event delegation universal para el botón de colgar
         this.setupUniversalHangupHandler();
+        
+        // Cargar historial de llamadas al inicializar
+        setTimeout(() => this.loadCallHistory(), 1000);
     }
 
     /**
@@ -593,6 +601,11 @@ class TwilioPhone {
             console.log('DEBUG: Número original:', phoneNumber);
             console.log('DEBUG: Número limpio:', cleanNumber);
             
+            // Registrar información de la llamada saliente
+            this.currentCallPhoneNumber = cleanNumber;
+            this.currentCallType = 'outgoing';
+            this.currentCallStartTime = new Date();
+            
             if (!cleanNumber.startsWith('+')) {
                 console.error('DEBUG: Número sin código de país');
                 throw new Error('El número debe incluir código de país (+)');
@@ -835,8 +848,18 @@ class TwilioPhone {
         console.log('DEBUG: Deteniendo timer de llamada');
         this.stopCallTimer();
         
+        // Registrar la llamada antes de limpiar el estado
+        if (this.currentCallPhoneNumber && this.currentCallStartTime) {
+            const endTime = new Date();
+            const duration = Math.floor((endTime - this.currentCallStartTime) / 1000);
+            this.registerCall(this.currentCallPhoneNumber, this.currentCallType, duration);
+        }
+        
         console.log('DEBUG: Limpiando estado de llamada');
         this.currentCall = null;
+        this.currentCallPhoneNumber = null;
+        this.currentCallType = null;
+        this.currentCallStartTime = null;
         this.isMuted = false;
         this.isOnHold = false;
         
@@ -852,6 +875,12 @@ class TwilioPhone {
      */
     onIncomingCall(call) {
         this.currentCall = call;
+        
+        // Registrar información de la llamada entrante
+        this.currentCallPhoneNumber = call.parameters.From || 'Desconocido';
+        this.currentCallType = 'incoming';
+        this.currentCallStartTime = new Date();
+        
         this.showIncomingCall(call);
     }
 
@@ -1394,6 +1423,204 @@ class TwilioPhone {
         });
         
         console.log('DEBUG: Event listener universal configurado exitosamente');
+    }
+
+    /**
+     * Agrega una llamada al registro de llamadas recientes
+     * @param {Object} callData - Datos de la llamada
+     */
+    addToRecentCalls(callData) {
+        console.log('DEBUG: Agregando llamada a llamadas recientes:', callData);
+        
+        const recentCallsList = document.getElementById('recentCallsList');
+        if (!recentCallsList) {
+            console.error('DEBUG: Elemento recentCallsList no encontrado');
+            return;
+        }
+
+        // Crear el elemento de la llamada reciente
+        const callElement = this.createCallElement(callData, 'recent');
+        
+        // Limpiar el mensaje de "no hay llamadas" si existe
+        const noCallsMessage = recentCallsList.querySelector('.text-center.text-muted');
+        if (noCallsMessage) {
+            noCallsMessage.remove();
+        }
+
+        // Agregar la nueva llamada al inicio de la lista
+        recentCallsList.insertBefore(callElement, recentCallsList.firstChild);
+        
+        // Mantener solo las últimas 5 llamadas recientes
+        const callElements = recentCallsList.querySelectorAll('.call-item');
+        if (callElements.length > 5) {
+            callElements[callElements.length - 1].remove();
+        }
+
+        console.log('DEBUG: Llamada agregada a llamadas recientes');
+    }
+
+    /**
+     * Agrega una llamada al historial completo de llamadas
+     * @param {Object} callData - Datos de la llamada
+     */
+    addToCallHistory(callData) {
+        console.log('DEBUG: Agregando llamada al historial:', callData);
+        
+        const callHistory = document.getElementById('callHistory');
+        if (!callHistory) {
+            console.error('DEBUG: Elemento callHistory no encontrado');
+            return;
+        }
+
+        // Crear el elemento de la llamada para el historial
+        const callElement = this.createCallElement(callData, 'history');
+        
+        // Limpiar el mensaje de "no hay historial" si existe
+        const noHistoryMessage = callHistory.querySelector('.text-center.text-muted');
+        if (noHistoryMessage) {
+            noHistoryMessage.remove();
+        }
+
+        // Agregar la nueva llamada al inicio de la lista
+        callHistory.insertBefore(callElement, callHistory.firstChild);
+
+        console.log('DEBUG: Llamada agregada al historial');
+    }
+
+    /**
+     * Crea un elemento HTML para mostrar una llamada
+     * @param {Object} callData - Datos de la llamada
+     * @param {string} type - Tipo de lista ('recent' o 'history')
+     * @returns {HTMLElement} - Elemento HTML de la llamada
+     */
+    createCallElement(callData, type) {
+        const callElement = document.createElement('div');
+        callElement.className = 'call-item d-flex align-items-center p-3 border-bottom';
+        
+        // Determinar el icono según el tipo de llamada
+        let iconClass = 'bx-phone';
+        let iconColor = 'text-primary';
+        
+        if (callData.type === 'outgoing') {
+            iconClass = 'bx-phone-outgoing';
+            iconColor = 'text-success';
+        } else if (callData.type === 'incoming') {
+            iconClass = 'bx-phone-incoming';
+            iconColor = 'text-info';
+        } else if (callData.type === 'missed') {
+            iconClass = 'bx-phone-off';
+            iconColor = 'text-danger';
+        }
+
+        // Formatear la duración si existe
+        const duration = callData.duration ? this.formatDuration(callData.duration) : 'No conectada';
+        
+        // Formatear la fecha
+        const date = new Date(callData.timestamp);
+        const timeString = date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        const dateString = type === 'history' ? date.toLocaleDateString('es-ES') : 'Hoy';
+
+        callElement.innerHTML = `
+            <div class="flex-shrink-0 me-3">
+                <div class="avatar avatar-sm">
+                    <span class="avatar-initial rounded-circle bg-label-primary">
+                        <i class="bx ${iconClass} ${iconColor}"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="flex-grow-1">
+                <h6 class="mb-0">${callData.phoneNumber}</h6>
+                <small class="text-muted">${dateString} - ${timeString}</small>
+                ${type === 'history' ? `<br><small class="text-muted">Duración: ${duration}</small>` : ''}
+            </div>
+            <div class="flex-shrink-0">
+                <button class="btn btn-sm btn-outline-primary" onclick="window.twilioPhone.makeCall('${callData.phoneNumber}')">
+                    <i class="bx bx-phone"></i>
+                </button>
+            </div>
+        `;
+
+        return callElement;
+    }
+
+    /**
+     * Formatea la duración en segundos a formato mm:ss
+     * @param {number} seconds - Duración en segundos
+     * @returns {string} - Duración formateada
+     */
+    formatDuration(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    /**
+     * Registra una llamada completada en ambas listas
+     * @param {string} phoneNumber - Número de teléfono
+     * @param {string} type - Tipo de llamada ('outgoing', 'incoming', 'missed')
+     * @param {number} duration - Duración en segundos (opcional)
+     */
+    registerCall(phoneNumber, type, duration = 0) {
+        console.log('DEBUG: Registrando llamada:', { phoneNumber, type, duration });
+        
+        const callData = {
+            phoneNumber: phoneNumber,
+            type: type,
+            duration: duration,
+            timestamp: new Date().toISOString()
+        };
+
+        // Agregar a llamadas recientes
+        this.addToRecentCalls(callData);
+        
+        // Agregar al historial completo
+        this.addToCallHistory(callData);
+        
+        // Guardar en localStorage para persistencia
+        this.saveCallToStorage(callData);
+        
+        console.log('DEBUG: Llamada registrada exitosamente');
+    }
+
+    /**
+     * Guarda una llamada en localStorage para persistencia
+     * @param {Object} callData - Datos de la llamada
+     */
+    saveCallToStorage(callData) {
+        try {
+            let callHistory = JSON.parse(localStorage.getItem('twilioCallHistory') || '[]');
+            callHistory.unshift(callData);
+            
+            // Mantener solo las últimas 100 llamadas
+            if (callHistory.length > 100) {
+                callHistory = callHistory.slice(0, 100);
+            }
+            
+            localStorage.setItem('twilioCallHistory', JSON.stringify(callHistory));
+            console.log('DEBUG: Llamada guardada en localStorage');
+        } catch (error) {
+            console.error('DEBUG: Error al guardar llamada en localStorage:', error);
+        }
+    }
+
+    /**
+     * Carga el historial de llamadas desde localStorage
+     */
+    loadCallHistory() {
+        try {
+            const callHistory = JSON.parse(localStorage.getItem('twilioCallHistory') || '[]');
+            console.log('DEBUG: Cargando historial de llamadas:', callHistory.length, 'llamadas');
+            
+            // Cargar las últimas 5 en llamadas recientes
+            const recentCalls = callHistory.slice(0, 5);
+            recentCalls.forEach(callData => this.addToRecentCalls(callData));
+            
+            // Cargar todas en el historial
+            callHistory.forEach(callData => this.addToCallHistory(callData));
+            
+        } catch (error) {
+            console.error('DEBUG: Error al cargar historial de llamadas:', error);
+        }
     }
 }
 

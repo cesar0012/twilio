@@ -709,6 +709,10 @@ body {
   color: var(--white-color);
 }
 
+div#callDialpad {
+    display: flex !important;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .content-wrapper {
