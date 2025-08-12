@@ -277,10 +277,15 @@ class TwilioApp {
      * Maneja el inicio de una llamada
      */
     handleCall() {
-        const phoneNumber = this.elements.phoneNumberInput.value.trim();
+        let phoneNumber = this.elements.phoneNumberInput.value.trim();
         if (!phoneNumber) {
             this.showError('Ingrese un número de teléfono');
             return;
+        }
+        
+        // Agregar '+' automáticamente si no está presente
+        if (!phoneNumber.startsWith('+')) {
+            phoneNumber = '+' + phoneNumber;
         }
         
         window.twilioPhone.makeCall(phoneNumber);
