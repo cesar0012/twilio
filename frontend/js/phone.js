@@ -719,6 +719,7 @@ class TwilioPhone {
     hangup() {
         if (this.currentCall) {
             this.currentCall.disconnect();
+            this.currentCall = null;
             this.hideCallControlModal();
             this.showSuccess('Llamada terminada');
         }
@@ -1107,8 +1108,35 @@ class TwilioPhone {
      * Configura los event listeners para los controles del modal
      */
     setupCallControlEventListeners() {
-        // Los botones principales (hangup, mute, hold, speaker, keypad) ya están configurados en app.js
-        // Solo configuramos aquí los elementos específicos del modal
+        // Botón de colgar
+        const hangupButton = document.getElementById('hangupButton');
+        if (hangupButton) {
+            hangupButton.onclick = () => this.hangup();
+        }
+
+        // Botón de silenciar
+        const muteButton = document.getElementById('muteButton');
+        if (muteButton) {
+            muteButton.onclick = () => this.toggleMute();
+        }
+
+        // Botón de retener
+        const holdButton = document.getElementById('holdButton');
+        if (holdButton) {
+            holdButton.onclick = () => this.toggleHold();
+        }
+
+        // Botón de altavoz
+        const speakerButton = document.getElementById('speakerButton');
+        if (speakerButton) {
+            speakerButton.onclick = () => this.toggleSpeaker();
+        }
+
+        // Toggle del teclado
+        const keypadToggle = document.getElementById('keypadToggle');
+        if (keypadToggle) {
+            keypadToggle.onclick = () => this.toggleKeypad();
+        }
 
         // Botones del dialpad DTMF - enviar tonos directamente
         const dtmfButtons = document.querySelectorAll('#callDialpadGrid [data-dtmf]');

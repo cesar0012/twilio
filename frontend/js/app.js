@@ -143,11 +143,7 @@ class TwilioApp {
             this.elements.callButton.addEventListener('click', this.handleCall);
         }
         
-        if (this.elements.hangupButton) {
-            this.elements.hangupButton.addEventListener('click', () => {
-                window.twilioPhone.hangup();
-            });
-        }
+        // Botón de colgar manejado por setupCallControlEventListeners en phone.js
         
         // Controles de llamada activa
         if (this.elements.muteButton) {
