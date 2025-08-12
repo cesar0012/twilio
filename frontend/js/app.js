@@ -98,7 +98,8 @@ class TwilioApp {
             callTimer: document.getElementById('call-timer'),
             
             // Elementos adicionales del Template
-            autoConnect: document.getElementById('auto-connect'),
+            autoConnect: document.getElementById('connectionToggle'),
+            clearCredentialsButton: document.getElementById('clearCredentialsBtn'),
             microphoneSelect: document.getElementById('microphone-select'),
             speakerSelect: document.getElementById('speaker-select'),
             volumeControl: document.getElementById('volume-control')
@@ -125,6 +126,17 @@ class TwilioApp {
         
         if (this.elements.clearCredentialsButton) {
             this.elements.clearCredentialsButton.addEventListener('click', this.handleClearCredentials.bind(this));
+        }
+        
+        // Toggle de conexión automática
+        if (this.elements.autoConnect) {
+            this.elements.autoConnect.addEventListener('change', this.handleAutoConnectToggle.bind(this));
+        }
+        
+        // Botón de guardar credenciales
+        const saveCredentialsBtn = document.getElementById('saveCredentialsBtn');
+        if (saveCredentialsBtn) {
+            saveCredentialsBtn.addEventListener('click', this.handleCredentialsSubmit.bind(this));
         }
         
         // Controles de llamada
@@ -284,6 +296,24 @@ class TwilioApp {
             this.clearCredentialsForm();
             this.updateConnectionUI(false);
             this.showSuccess('Credenciales eliminadas');
+        }
+    }
+
+    /**
+     * Maneja el toggle de conexión automática
+     */
+    async handleAutoConnectToggle() {
+        if (this.elements.autoConnect.checked) {
+            // Si se activa el toggle, intentar conectar automáticamente
+            if (window.twilioCredentials.load()) {
+                await this.handleConnect();
+            } else {
+                this.showError('Debe configurar las credenciales primero');
+                this.elements.autoConnect.checked = false;
+            }
+        } else {
+            // Si se desactiva el toggle, desconectar
+            this.handleDisconnect();
         }
     }
 
