@@ -84,49 +84,42 @@ def handle_calls():
     """
     Webhook para manejar llamadas entrantes y salientes
     """
-    # Depuración de parámetros
+
+    # --- PASO DE DEPURACIÓN MEJORADO ---
     print("\n--- INICIO DE WEBHOOK /handle_calls ---")
-    form = request.form
-    all_params = form.to_dict()
+    all_params = request.form.to_dict()
     print(f"Parámetros recibidos de Twilio: {all_params}")
+    print("--- FIN DE WEBHOOK ---\n")
+    # ----------------------------------------
 
     response = VoiceResponse()
     try:
-        number_to_dial = None
-        caller_id = None
+        # Si la llamada viene del navegador (identificada por 'client:'), es una llamada SALIENTE
+        if 'To' in request.form and request.form.get('To'):
+            # Determinar si es una llamada saliente (hacia un número) o entrante al cliente
+            # Si 'From' empieza con 'client:', es una llamada que se origina desde nuestro frontend.
+            # Detectar llamada saliente si 'Caller' o 'From' empiezan con 'client:'
+            if (request.form.get('Caller', '').startswith('client:') or request.form.get('From', '').startswith('client:')):
+                # Llamada saliente desde el navegador
+                number_to_dial = request.form.get('To')
+                # El 'caller_id' debe ser el número de Twilio que se pasa desde el frontend
+                caller_id = request.form.get('twilio_phone_number')
 
-        # 1) Flujo actual del frontend: envía To (destino) y twilio_phone_number (callerId)
-        if form.get('To') and form.get('From', '').startswith('client:'):
-            number_to_dial = form.get('To')
-            caller_id = form.get('twilio_phone_number')
-            print(f"[DEBUG] Detectado flujo To/twilio_phone_number. Destino={number_to_dial}, CallerID={caller_id}")
-
-        # 2) Compatibilidad: para otros flujos que envíen PhoneNumber y FromNumber
-        elif form.get('PhoneNumber'):
-            number_to_dial = form.get('PhoneNumber')
-            caller_id = form.get('FromNumber')
-            print(f"[DEBUG] Flujo compatibilidad PhoneNumber/FromNumber. Destino={number_to_dial}, CallerID={caller_id}")
-
-        if number_to_dial:
-            # Respaldo por si no llegó callerId desde el frontend
-            if not caller_id:
-                caller_id = os.environ.get('TWILIO_PHONE_NUMBER') or os.environ.get('TWILIO_CALLER_ID')
-                print(f"[DEBUG] CallerID no proporcionado; usando respaldo de entorno: {caller_id}")
-
-            if not caller_id:
-                print("[ERROR] No hay Caller ID disponible para marcar a PSTN")
-                response.say("Error: No hay Caller ID configurado.")
+                if caller_id and number_to_dial:
+                    dial = response.dial(caller_id=caller_id)
+                    dial.number(number_to_dial)
+                else:
+                    response.say("Error: No se proporcionó el número de origen o destino para la llamada saliente.")
             else:
-                print(f"[DEBUG] Marcando a {number_to_dial} con callerId {caller_id}")
-                dial = response.dial(caller_id=caller_id)
-                dial.number(number_to_dial)
-        else:
-            # Si no se recibió número destino, tratamos como llamada entrante a nuestro número de Twilio
-            print("[DEBUG] No se detectó número destino; conectando llamada entrante al cliente del navegador.")
+                # Llamada entrante a un número de Twilio, la reenviamos al cliente del navegador
+                dial = response.dial()
+                dial.client('browser_client')
+
+        else: # Si no, es una llamada ENTRANTE
+            # Para llamadas entrantes, simplemente conectamos la llamada al cliente del navegador
             dial = response.dial()
             dial.client('browser_client')
 
-        print("--- FIN DE WEBHOOK ---\n")
         return str(response), 200, {'Content-Type': 'text/xml'}
         
     except Exception as e:
