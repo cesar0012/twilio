@@ -213,7 +213,8 @@ class PhoneManager {
             this.app.updateConnectionStatus('calling');
             
             const params = {
-                To: formattedNumber
+                To: formattedNumber,
+                twilio_phone_number: this.app.credentialsManager.getCredentials().twilioPhoneNumber
             };
 
             // Realizar la llamada
