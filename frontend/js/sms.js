@@ -289,6 +289,41 @@ class TwilioSMS {
     }
 
     /**
+     * Valida el número de teléfono de destino
+     */
+    validatePhoneNumber(phoneNumber) {
+        // Remover espacios y caracteres especiales
+        const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
+        
+        // Verificar formato internacional
+        if (!cleanNumber.startsWith('+')) {
+            throw new Error('El número debe incluir el código de país (ej: +52 para México, +1 para USA)');
+        }
+        
+        // Extraer código de país
+        const countryCode = cleanNumber.substring(1, 3);
+        
+        // Lista de códigos de país comúnmente soportados por Twilio
+        const supportedCountries = {
+            '1': 'Estados Unidos/Canadá',
+            '44': 'Reino Unido',
+            '49': 'Alemania',
+            '33': 'Francia',
+            '34': 'España',
+            '39': 'Italia',
+            '61': 'Australia',
+            '81': 'Japón'
+        };
+        
+        // Advertencia para México y otros países que pueden requerir configuración especial
+        if (countryCode === '52') {
+            throw new Error('CONFIGURACIÓN REQUERIDA: Para enviar SMS a México (+52), debe habilitar permisos geográficos en su cuenta Twilio. Vaya a Console > Messaging > Settings > Geo Permissions y habilite México.');
+        }
+        
+        return cleanNumber;
+    }
+
+    /**
      * Envía un mensaje SMS
      */
     async sendMessage(to, message) {
@@ -297,6 +332,9 @@ class TwilioSMS {
             if (!window.twilioPhone || !window.twilioPhone.isConnected) {
                 throw new Error('No hay conexión a Twilio. Por favor, conéctese primero.');
             }
+            
+            // Validar número de destino
+            const validatedNumber = this.validatePhoneNumber(to);
             
             // Obtener credenciales completas (incluyendo Auth Token para SMS)
             const credentials = window.twilioCredentials.load();
@@ -325,7 +363,7 @@ class TwilioSMS {
             const smsData = {
                 ...credentials,
                 from: fromNumber,
-                to: to,
+                to: validatedNumber,
                 body: message
             };
             
@@ -352,7 +390,40 @@ class TwilioSMS {
             return data;
         } catch (error) {
             console.error('Error enviando SMS:', error);
-            this.showError('Error enviando mensaje: ' + error.message);
+            
+            // Detectar errores específicos de permisos geográficos
+            if (error.message.includes('Permission to send an SMS has not been enabled for the region')) {
+                const match = error.message.match(/\+(\d{1,3})/);
+                const countryCode = match ? match[1] : 'desconocido';
+                
+                const countryNames = {
+                    '52': 'México',
+                    '54': 'Argentina', 
+                    '55': 'Brasil',
+                    '56': 'Chile',
+                    '57': 'Colombia',
+                    '58': 'Venezuela',
+                    '51': 'Perú',
+                    '593': 'Ecuador',
+                    '591': 'Bolivia',
+                    '598': 'Uruguay'
+                };
+                
+                const countryName = countryNames[countryCode] || `código +${countryCode}`;
+                
+                const detailedError = `CONFIGURACIÓN REQUERIDA: No tiene permisos para enviar SMS a ${countryName}.\n\n` +
+                    `SOLUCIÓN:\n` +
+                    `1. Vaya a su Twilio Console\n` +
+                    `2. Navegue a Messaging > Settings > Geo Permissions\n` +
+                    `3. Habilite ${countryName} en la lista de países permitidos\n` +
+                    `4. Guarde los cambios y espere unos minutos\n\n` +
+                    `Nota: Algunos países pueden requerir verificación adicional o tener restricciones especiales.`;
+                
+                this.showError(detailedError);
+            } else {
+                this.showError('Error enviando mensaje: ' + error.message);
+            }
+            
             throw error;
         }
     }
