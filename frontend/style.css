@@ -774,6 +774,68 @@ img.app-brand-logo-img {
   }
 }
 
+/* Tab Pane Styles - Bootstrap Fix */
+.tab-pane {
+    display: none !important;
+}
+
+.tab-pane.active {
+    display: block !important;
+}
+
+.tab-pane.fade {
+    opacity: 0;
+    transition: opacity 0.15s linear;
+}
+
+.tab-pane.fade.show {
+    opacity: 1;
+}
+
+.tab-pane.fade.active.show {
+    display: block !important;
+    opacity: 1;
+}
+
+/* Ensure Bootstrap grid system works */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -0.75rem;
+    margin-left: -0.75rem;
+}
+
+.col-lg-6 {
+    flex: 0 0 auto;
+    width: 50%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+}
+
+.col-md-6 {
+    flex: 0 0 auto;
+    width: 50%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+}
+
+@media (max-width: 767.98px) {
+    .col-md-6 {
+        width: 100%;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .col-lg-6 {
+        width: 100%;
+    }
+}
+
+.tab-pane.fade.active.show {
+  display: block;
+  opacity: 1;
+}
+
 /* Animation Classes */
 .fade-in {
   animation: fadeIn 0.3s ease-in-out;
