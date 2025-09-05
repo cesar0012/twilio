@@ -77,3 +77,9 @@ node_modules/
 
 # Template folder - archivos de plantilla
 Template/
+
+# Excluir carpeta twilio-sms-app y todo su contenido
+twilio-sms-app/
+backend/Dockerfile
+frontend/Dockerfile
+.gitignore
