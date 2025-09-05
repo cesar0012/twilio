@@ -282,6 +282,9 @@ class TwilioSMS {
             
             // Actualizar la vista de mensajes
             await this.fetchMessages(this.currentChat);
+            
+            // Actualizar la lista de conversaciones para reflejar el último mensaje
+            await this.loadConversations();
         } catch (error) {
             console.error('Error enviando mensaje:', error);
             this.showError('Error enviando mensaje: ' + error.message);
@@ -442,6 +445,9 @@ class TwilioSMS {
             
             // Mostrar mensaje de éxito
             this.showSuccess('Mensaje enviado correctamente');
+            
+            // Recargar conversaciones para mostrar la nueva conversación
+            await this.loadConversations();
             
             return data;
         } catch (error) {
