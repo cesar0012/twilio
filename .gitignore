@@ -50,6 +50,28 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Archivos de prueba y diagnóstico
+*_diagnosis.js
+*_fix.js
+test_*.js
+playwright_*.js
+
+# Logs
+*.log
+logs/
+
+# Archivos temporales
+*.tmp
+*.temp
+Thumbs.db
+
 # Logs
 log.txt
 *.log

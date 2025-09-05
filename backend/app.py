@@ -4,6 +4,7 @@ from flask_cors import CORS
 from twilio.jwt.access_token import AccessToken
 from twilio.jwt.access_token.grants import VoiceGrant
 from twilio.twiml.voice_response import VoiceResponse
+from twilio.rest import Client
 import os
 
 # --- CAMBIO 2: Configurar Flask para que sepa dónde está el frontend ---
@@ -125,6 +126,166 @@ def handle_calls():
         response.say('Lo sentimos, ha ocurrido un error. La llamada será terminada.')
         response.hangup()
         return str(response), 200, {'Content-Type': 'text/xml'}
+
+@app.route('/phone-numbers', methods=['POST'])
+def get_phone_numbers():
+    """
+    Obtiene los números de teléfono de Twilio usando las credenciales proporcionadas
+    """
+    try:
+        print("[DEBUG] Recibida solicitud de números de teléfono")
+        data = request.get_json()
+        print(f"[DEBUG] Datos recibidos: {data}")
+        
+        # Extraer credenciales del request
+        account_sid = data.get('accountSid')
+        auth_token = data.get('authToken')
+        
+        print(f"[DEBUG] Credenciales extraídas - Account SID: {account_sid[:10] if account_sid else 'None'}..., Auth Token: {'***' if auth_token else 'None'}")
+        
+        # Validar que las credenciales estén presentes
+        if not all([account_sid, auth_token]):
+            print("[ERROR] Faltan credenciales requeridas (accountSid y authToken)")
+            return jsonify({'error': 'Faltan credenciales requeridas (accountSid y authToken)'}), 400
+        
+        print("[DEBUG] Creando cliente de Twilio...")
+        # Crear cliente de Twilio
+        client = Client(account_sid, auth_token)
+        
+        print("[DEBUG] Obteniendo números de teléfono...")
+        # Obtener números de teléfono
+        phone_numbers = client.incoming_phone_numbers.list()
+        
+        # Formatear la respuesta
+        numbers_data = []
+        for number in phone_numbers:
+            numbers_data.append({
+                'sid': number.sid,
+                'phoneNumber': number.phone_number,
+                'friendlyName': number.friendly_name,
+                'capabilities': {
+                    'voice': number.capabilities.get('voice', False),
+                    'sms': number.capabilities.get('sms', False),
+                    'mms': number.capabilities.get('mms', False)
+                }
+            })
+        
+        print(f"[DEBUG] Se encontraron {len(numbers_data)} números de teléfono")
+        
+        return jsonify({
+            'phoneNumbers': numbers_data,
+            'count': len(numbers_data)
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Error obteniendo números de teléfono: {str(e)}")
+        print(f"[ERROR] Tipo de error: {type(e).__name__}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        return jsonify({'error': f'Error obteniendo números de teléfono: {str(e)}'}), 500
+
+@app.route('/send-sms', methods=['POST'])
+def send_sms():
+    """
+    Envía un mensaje SMS usando Twilio
+    """
+    try:
+        print("[DEBUG] Recibida solicitud de envío de SMS")
+        data = request.get_json()
+        print(f"[DEBUG] Datos recibidos: {data}")
+        
+        # Extraer datos del request
+        account_sid = data.get('accountSid')
+        auth_token = data.get('authToken')
+        from_number = data.get('from')
+        to_number = data.get('to')
+        message_body = data.get('body')
+        
+        print(f"[DEBUG] Enviando SMS de {from_number} a {to_number}")
+        
+        # Validar que todos los datos estén presentes
+        if not all([account_sid, auth_token, from_number, to_number, message_body]):
+            print("[ERROR] Faltan datos requeridos para enviar SMS")
+            return jsonify({'error': 'Faltan datos requeridos para enviar SMS'}), 400
+        
+        # Crear cliente de Twilio
+        client = Client(account_sid, auth_token)
+        
+        # Enviar mensaje
+        message = client.messages.create(
+            body=message_body,
+            from_=from_number,
+            to=to_number
+        )
+        
+        print(f"[DEBUG] SMS enviado exitosamente. SID: {message.sid}")
+        
+        return jsonify({
+            'success': True,
+            'messageSid': message.sid,
+            'status': message.status
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Error enviando SMS: {str(e)}")
+        print(f"[ERROR] Tipo de error: {type(e).__name__}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        return jsonify({'error': f'Error enviando SMS: {str(e)}'}), 500
+
+@app.route('/messages', methods=['POST'])
+def get_messages():
+    """
+    Obtiene los mensajes SMS de Twilio
+    """
+    try:
+        print("[DEBUG] Recibida solicitud de mensajes")
+        data = request.get_json()
+        
+        # Extraer credenciales del request
+        account_sid = data.get('accountSid')
+        auth_token = data.get('authToken')
+        phone_number = data.get('phoneNumber')
+        
+        # Validar que las credenciales estén presentes
+        if not all([account_sid, auth_token]):
+            print("[ERROR] Faltan credenciales requeridas")
+            return jsonify({'error': 'Faltan credenciales requeridas'}), 400
+        
+        # Crear cliente de Twilio
+        client = Client(account_sid, auth_token)
+        
+        # Obtener mensajes
+        messages = client.messages.list(
+            limit=50,
+            to=phone_number if phone_number else None
+        )
+        
+        # Formatear la respuesta
+        messages_data = []
+        for message in messages:
+            messages_data.append({
+                'sid': message.sid,
+                'from': message.from_,
+                'to': message.to,
+                'body': message.body,
+                'status': message.status,
+                'direction': message.direction,
+                'dateCreated': message.date_created.isoformat() if message.date_created else None
+            })
+        
+        print(f"[DEBUG] Se encontraron {len(messages_data)} mensajes")
+        
+        return jsonify({
+            'messages': messages_data,
+            'count': len(messages_data)
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Error obteniendo mensajes: {str(e)}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        return jsonify({'error': f'Error obteniendo mensajes: {str(e)}'}), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():
