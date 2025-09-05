@@ -74,42 +74,45 @@ class TwilioApp {
             twilioPhoneNumber: document.getElementById('twilioPhoneNumber'),
             
             // Controles de conexión
-            connectButton: document.getElementById('connect-button'),
-            disconnectButton: document.getElementById('disconnect-button'),
-            clearCredentialsButton: document.getElementById('clear-credentials'),
+            connectButton: document.getElementById('connectionToggle'),
+            disconnectButton: null, // No hay un botón de desconectar separado en el HTML
+            clearCredentialsButton: document.getElementById('clearCredentialsBtn'),
             
             // Controles de llamada
             phoneNumberInput: document.getElementById('phoneNumber'),
             callButton: document.getElementById('callButton'),
-            hangupButton: document.getElementById('hangup-button'),
+            hangupButton: document.getElementById('hangupButton'),
             
             // Controles de llamada activa
-            muteButton: document.getElementById('mute-button'),
-            holdButton: document.getElementById('hold-button'),
-            speakerButton: document.getElementById('speaker-button'),
+            muteButton: document.getElementById('muteButton'),
+            holdButton: document.getElementById('holdButton'),
+            speakerButton: document.getElementById('speakerButton'),
             
             // Dialpad
             dialpadButtons: document.querySelectorAll('.dialpad-btn'),
             clearNumberButton: document.getElementById('clearNumberButton'),
+            dialpadContainer: document.getElementById('dialpadContainer'),
+            // Note: dialpadToggle doesn't exist as a separate element in the HTML
             
             // Llamadas entrantes
-            acceptButton: document.getElementById('accept-call'),
-            rejectButton: document.getElementById('reject-call'),
+            acceptButton: document.getElementById('acceptCallButton'),
+            rejectButton: document.getElementById('rejectCallButton'),
             incomingCallModal: document.getElementById('incomingCallModal'),
-            incomingCallNumber: document.getElementById('incoming-call-number'),
+            incomingCallNumber: document.getElementById('incomingNumber'),
             
             // Estado y mensajes
-            connectionStatus: document.getElementById('connection-status'),
-            statusMessage: document.getElementById('status-message'),
-            callOverlay: document.getElementById('call-overlay'),
-            callStatus: document.getElementById('call-status'),
-            callTimer: document.getElementById('call-timer'),
+            connectionStatus: document.getElementById('connectionStatus'),
+            statusMessage: document.getElementById('statusMessage'),
+            callOverlay: document.getElementById('callOverlay'),
+            callStatus: document.getElementById('callStatus'),
+            callTimer: document.getElementById('callTimer'),
+            callNumber: document.getElementById('callNumber'),
             
             // Elementos adicionales del Template
             autoConnect: document.getElementById('connectionToggle'),
-            microphoneSelect: document.getElementById('microphone-select'),
-            speakerSelect: document.getElementById('speaker-select'),
-            volumeControl: document.getElementById('volume-control')
+            microphoneSelect: document.getElementById('microphoneSelect'),
+            speakerSelect: document.getElementById('speakerSelect'),
+            volumeControl: document.getElementById('volumeControl')
         };
     }
 
@@ -166,10 +169,7 @@ class TwilioApp {
             });
         }
         
-        // Dialpad
-        if (this.elements.dialpadToggle) {
-            this.elements.dialpadToggle.addEventListener('click', this.toggleDialpad.bind(this));
-        }
+        // Dialpad - No separate toggle element, handled by dialpad container visibility
         
         // Llamadas entrantes
         if (this.elements.acceptButton) {
@@ -484,12 +484,6 @@ class TwilioApp {
             } else {
                 this.elements.dialpadContainer.classList.add('d-none');
             }
-        }
-        
-        if (this.elements.dialpadToggle) {
-            this.elements.dialpadToggle.innerHTML = this.dialpadVisible 
-                ? '<i class="fas fa-th"></i> Ocultar Dialpad'
-                : '<i class="fas fa-th"></i> Mostrar Dialpad';
         }
     }
 
