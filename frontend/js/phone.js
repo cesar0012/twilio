@@ -2020,6 +2020,43 @@ class TwilioPhone {
             }
         });
     }
+    /**
+     * Obtiene los números de teléfono del usuario desde Twilio
+     */
+    async getUserPhoneNumbers() {
+        try {
+            // Verificar que estemos conectados
+            if (!this.device || !this.isConnected) {
+                throw new Error('No hay conexión a Twilio. Por favor, conéctese primero.');
+            }
+            
+            // Obtener credenciales
+            const credentials = window.twilioCredentials.getForBackend();
+            if (!credentials) {
+                throw new Error('No hay credenciales disponibles');
+            }
+            
+            // Obtener números de teléfono del backend
+            const response = await fetch(`${this.backendUrl}/phone-numbers`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(credentials)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error obteniendo números de teléfono');
+            }
+            
+            const data = await response.json();
+            return data.phoneNumbers || [];
+        } catch (error) {
+            console.error('Error obteniendo números de teléfono:', error);
+            throw error;
+        }
+    }
 }
 
 // Crear instancia global

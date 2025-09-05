@@ -32,6 +32,14 @@ class TwilioApp {
             // Configurar event listeners
             this.setupEventListeners();
             
+            // Inicializar módulo de SMS si está disponible
+            if (window.twilioSMS && typeof window.twilioSMS.init === 'function') {
+                window.twilioSMS.init();
+            }
+            
+            // Configurar event listeners para SMS
+            this.setupSmsEventListeners();
+            
             // Cargar credenciales guardadas
             this.loadSavedCredentials();
             
@@ -294,6 +302,66 @@ class TwilioApp {
     handleDisconnect() {
         window.twilioPhone.disconnect();
         this.updateConnectionUI(false);
+    }
+    
+    /**
+     * Configura los event listeners para SMS
+     */
+    setupSmsEventListeners() {
+        // Botón de nuevo SMS
+        const newSmsBtn = document.getElementById('newSmsBtn');
+        if (newSmsBtn) {
+            newSmsBtn.addEventListener('click', () => {
+                if (window.twilioSMS && typeof window.twilioSMS.showNewSmsModal === 'function') {
+                    window.twilioSMS.showNewSmsModal();
+                }
+            });
+        }
+        
+        // Botón de enviar SMS
+        const sendSmsBtn = document.getElementById('sendSmsBtn');
+        if (sendSmsBtn) {
+            sendSmsBtn.addEventListener('click', () => {
+                if (window.twilioSMS && typeof window.twilioSMS.handleSendMessage === 'function') {
+                    window.twilioSMS.handleSendMessage();
+                }
+            });
+        }
+        
+        // Enter key en input de mensaje SMS
+        const smsMessageText = document.getElementById('smsMessageText');
+        if (smsMessageText) {
+            smsMessageText.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    if (window.twilioSMS && typeof window.twilioSMS.handleSendMessage === 'function') {
+                        window.twilioSMS.handleSendMessage();
+                    }
+                }
+            });
+        }
+        
+        // Búsqueda de conversaciones SMS
+        const smsSearch = document.getElementById('smsSearch');
+        if (smsSearch) {
+            smsSearch.addEventListener('input', (e) => {
+                if (window.twilioSMS && typeof window.twilioSMS.filterConversations === 'function') {
+                    window.twilioSMS.filterConversations(e.target.value);
+                }
+            });
+        }
+        
+        // Actualizar estado de SMS cuando cambia la conexión de Twilio
+        if (window.twilioPhone) {
+            // Escuchar eventos de conexión de Twilio
+            const originalUpdateStatus = window.twilioPhone.updateStatus;
+            window.twilioPhone.updateStatus = (message, status) => {
+                originalUpdateStatus.call(window.twilioPhone, message, status);
+                // Actualizar estado de SMS también
+                if (window.twilioSMS && typeof window.twilioSMS.updateSmsStatus === 'function') {
+                    window.twilioSMS.updateSmsStatus(status);
+                }
+            };
+        }
     }
 
     /**
