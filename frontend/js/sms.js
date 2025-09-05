@@ -30,11 +30,15 @@ class TwilioSMS {
             // Configurar event listeners
             this.setupEventListeners();
             
-            // Cargar conversaciones
-            await this.loadConversations();
-            
-            // Iniciar polling para nuevos mensajes
-            this.startPolling();
+            // Solo cargar conversaciones si hay credenciales válidas
+            const credentials = window.twilioCredentials?.getForBackend();
+            if (credentials) {
+                await this.loadConversations();
+                // Iniciar polling para nuevos mensajes solo si hay credenciales
+                this.startPolling();
+            } else {
+                console.log('No hay credenciales disponibles. Las conversaciones se cargarán después de la autenticación.');
+            }
             
             console.log('Módulo de SMS inicializado correctamente');
         } catch (error) {
@@ -654,7 +658,18 @@ class TwilioSMS {
      * Formatea un timestamp para mostrar
      */
     formatTimestamp(timestamp) {
+        // Validar que el timestamp sea válido
+        if (!timestamp) {
+            return 'Hora no disponible';
+        }
+        
         const date = new Date(timestamp);
+        
+        // Verificar si la fecha es válida
+        if (isNaN(date.getTime())) {
+            return 'Hora no disponible';
+        }
+        
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
@@ -752,6 +767,9 @@ class TwilioSMS {
                 case 'connected':
                     smsStatusIndicator.classList.add('status-connected');
                     smsStatusIndicator.title = 'Conectado';
+                    // Cargar conversaciones cuando se conecte exitosamente
+                    this.loadConversations();
+                    this.startPolling();
                     break;
                 case 'connecting':
                     smsStatusIndicator.classList.add('status-connecting');
@@ -761,6 +779,8 @@ class TwilioSMS {
                 default:
                     smsStatusIndicator.classList.add('status-disconnected');
                     smsStatusIndicator.title = 'Desconectado';
+                    // Detener polling cuando se desconecte
+                    this.stopPolling();
                     break;
             }
         }
