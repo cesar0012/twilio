@@ -287,6 +287,73 @@ def get_messages():
         print(f"[ERROR] Traceback: {traceback.format_exc()}")
         return jsonify({'error': f'Error obteniendo mensajes: {str(e)}'}), 500
 
+@app.route('/conversations', methods=['POST'])
+def get_conversations():
+    """
+    Obtiene las conversaciones SMS agrupadas por contacto
+    """
+    try:
+        print("[DEBUG] Recibida solicitud de conversaciones")
+        data = request.get_json()
+        
+        # Extraer credenciales del request
+        account_sid = data.get('accountSid')
+        auth_token = data.get('authToken')
+        
+        # Validar que las credenciales estén presentes
+        if not all([account_sid, auth_token]):
+            print("[ERROR] Faltan credenciales requeridas")
+            return jsonify({'error': 'Faltan credenciales requeridas'}), 400
+        
+        # Crear cliente de Twilio
+        client = Client(account_sid, auth_token)
+        
+        # Obtener todos los mensajes recientes (últimos 100)
+        messages = client.messages.list(limit=100)
+        
+        # Agrupar mensajes por contacto
+        conversations = {}
+        for message in messages:
+            # Determinar el contacto (el número que no es nuestro)
+            contact = message.from_ if message.direction == 'inbound' else message.to
+            
+            if contact not in conversations:
+                conversations[contact] = {
+                    'contact': contact,
+                    'lastMessage': message.body,
+                    'lastMessageDate': message.date_created.isoformat() if message.date_created else None,
+                    'direction': message.direction,
+                    'messageCount': 0
+                }
+            
+            conversations[contact]['messageCount'] += 1
+            
+            # Actualizar con el mensaje más reciente
+            if message.date_created and (
+                not conversations[contact]['lastMessageDate'] or 
+                message.date_created.isoformat() > conversations[contact]['lastMessageDate']
+            ):
+                conversations[contact]['lastMessage'] = message.body
+                conversations[contact]['lastMessageDate'] = message.date_created.isoformat()
+                conversations[contact]['direction'] = message.direction
+        
+        # Convertir a lista y ordenar por fecha
+        conversations_list = list(conversations.values())
+        conversations_list.sort(key=lambda x: x['lastMessageDate'] or '', reverse=True)
+        
+        print(f"[DEBUG] Se encontraron {len(conversations_list)} conversaciones")
+        
+        return jsonify({
+            'conversations': conversations_list,
+            'count': len(conversations_list)
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Error obteniendo conversaciones: {str(e)}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        return jsonify({'error': f'Error obteniendo conversaciones: {str(e)}'}), 500
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """

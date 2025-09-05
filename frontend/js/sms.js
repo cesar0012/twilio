@@ -81,6 +81,25 @@ class TwilioSMS {
             });
         }
         
+        // Event delegation para clics en conversaciones
+        const smsList = document.getElementById('smsList');
+        if (smsList) {
+            smsList.addEventListener('click', (e) => {
+                const conversationItem = e.target.closest('.conversation-item');
+                if (conversationItem) {
+                    const contactNumber = conversationItem.dataset.contact;
+                    if (contactNumber) {
+                        this.fetchMessages(contactNumber);
+                        // Marcar como seleccionada
+                        document.querySelectorAll('.conversation-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+                        conversationItem.classList.add('active');
+                    }
+                }
+            });
+        }
+        
         // Actualizar estado de conexión cuando cambia la conexión de Twilio
         if (window.twilioPhone) {
             // Escuchar eventos de conexión de Twilio
@@ -98,29 +117,39 @@ class TwilioSMS {
      */
     async loadConversations() {
         try {
-            // Verificar que estemos conectados
-            if (!window.twilioPhone || !window.twilioPhone.isConnected) {
-                console.warn('No hay conexión a Twilio para cargar conversaciones');
-                return;
-            }
-            
-            // Obtener credenciales completas (incluyendo Auth Token para SMS)
-            const credentials = window.twilioCredentials.load();
+            // Obtener credenciales
+            const credentials = window.twilioCredentials.getForBackend();
             if (!credentials) {
                 console.warn('No hay credenciales disponibles para cargar conversaciones');
                 return;
             }
             
-            // Obtener números de teléfono del usuario
-            const userNumbers = await this.getUserPhoneNumbers(credentials);
+            // Obtener conversaciones del backend
+            const response = await fetch(`${this.backendUrl}/conversations`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    accountSid: credentials.accountSid,
+                    authToken: credentials.authToken
+                })
+            });
             
-            // Por ahora, mostramos un mensaje de que no hay conversaciones
-            // En una implementación completa, aquí se cargarían las conversaciones reales
-            this.updateConversationsList([]);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error obteniendo conversaciones');
+            }
+            
+            const data = await response.json();
+            console.log('Conversaciones obtenidas:', data);
+            
+            // Actualizar la UI con las conversaciones
+            this.updateConversationsList(data.conversations || []);
             
         } catch (error) {
             console.error('Error cargando conversaciones:', error);
-            this.showError('Error cargando conversaciones');
+            this.showError('Error cargando conversaciones: ' + error.message);
         }
     }
 
@@ -180,9 +209,15 @@ class TwilioSMS {
      * Crea un elemento HTML para una conversación
      */
     createConversationElement(conversation) {
+        const lastMessage = conversation.last_message_body || 'Sin mensajes';
+        const messageCount = conversation.message_count || 0;
+        const lastMessageTime = conversation.last_message_date ? 
+            new Date(conversation.last_message_date).toLocaleDateString() : '';
+        
         return `
             <div class="d-flex align-items-center p-3 border-bottom conversation-item" 
-                 data-contact="${conversation.contactNumber}">
+                 data-contact="${conversation.contact}" 
+                 style="cursor: pointer;">
                 <div class="flex-shrink-0 me-3">
                     <div class="avatar avatar-sm">
                         <span class="avatar-initial rounded-circle bg-label-primary">
@@ -191,11 +226,14 @@ class TwilioSMS {
                     </div>
                 </div>
                 <div class="flex-grow-1">
-                    <h6 class="mb-0">${conversation.contactNumber}</h6>
-                    <small class="text-muted">${conversation.lastMessage || 'Sin mensajes'}</small>
+                    <h6 class="mb-0">${conversation.contact}</h6>
+                    <small class="text-muted d-block" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${lastMessage}
+                    </small>
+                    ${lastMessageTime ? `<small class="text-muted">${lastMessageTime}</small>` : ''}
                 </div>
                 <div class="flex-shrink-0">
-                    <span class="badge bg-primary rounded-pill">${conversation.unreadCount || 0}</span>
+                    <span class="badge bg-primary rounded-pill">${messageCount}</span>
                 </div>
             </div>
         `;
@@ -531,9 +569,9 @@ class TwilioSMS {
             
             // Preparar datos para la consulta
             const messagesData = {
-                ...credentials,
-                userNumber: userNumber,
-                contactNumber: contactNumber
+                accountSid: credentials.accountSid,
+                authToken: credentials.authToken,
+                phoneNumber: contactNumber // El backend espera 'phoneNumber'
             };
             
             // Obtener mensajes del backend

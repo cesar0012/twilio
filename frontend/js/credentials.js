@@ -146,6 +146,7 @@ class TwilioCredentials {
         // Retornar solo las credenciales necesarias para el backend
         return {
             accountSid: credentials.accountSid,
+            authToken: credentials.authToken,
             apiKeySid: credentials.apiKeySid,
             apiKeySecret: credentials.apiKeySecret,
             twimlAppSid: credentials.twimlAppSid,
