@@ -289,6 +289,34 @@ class TwilioSMS {
     }
 
     /**
+     * Muestra los números de prueba disponibles para Twilio
+     */
+    showTestNumbers() {
+        const testNumbers = [
+            { number: '+15005550006', description: '✅ Número válido (recomendado para pruebas)' },
+            { number: '+15005550001', description: '❌ Número inválido (prueba manejo de errores)' },
+            { number: '+15005550002', description: '🚫 No enrutable (prueba errores de red)' },
+            { number: '+15005550003', description: '🌍 Sin permisos internacionales' },
+            { number: '+15005550004', description: '🔒 Número bloqueado' },
+            { number: '+15005550009', description: '📵 Incapaz de recibir SMS' }
+        ];
+        
+        let message = '📱 **NÚMEROS DE PRUEBA TWILIO DISPONIBLES:**\n\n';
+        testNumbers.forEach(item => {
+            message += `${item.number}\n${item.description}\n\n`;
+        });
+        message += '💡 **Recomendación:** Use +15005550006 para pruebas exitosas';
+        
+        Swal.fire({
+            title: 'Números de Prueba Twilio',
+            html: message.replace(/\n/g, '<br>'),
+            icon: 'info',
+            confirmButtonText: 'Entendido',
+            width: '600px'
+        });
+    }
+
+    /**
      * Valida el número de teléfono de destino
      */
     validatePhoneNumber(phoneNumber) {
@@ -303,6 +331,24 @@ class TwilioSMS {
         // Extraer código de país
         const countryCode = cleanNumber.substring(1, 3);
         
+        // Números mágicos de Twilio para pruebas (solo con credenciales de prueba)
+        const twilioMagicNumbers = {
+            // Números válidos para pruebas
+            '+15005550006': 'Número de prueba válido (pasa todas las validaciones)',
+            // Números que generan errores específicos para pruebas
+            '+15005550001': 'Número inválido (para probar manejo de errores)',
+            '+15005550002': 'Número no enrutable (para probar errores de red)',
+            '+15005550003': 'Sin permisos internacionales (para probar restricciones)',
+            '+15005550004': 'Número bloqueado (para probar bloqueos)',
+            '+15005550009': 'Incapaz de recibir SMS (para probar capacidades)'
+        };
+        
+        // Verificar si es un número mágico de Twilio
+        if (twilioMagicNumbers[cleanNumber]) {
+            console.log(`[PRUEBA] Usando número mágico de Twilio: ${twilioMagicNumbers[cleanNumber]}`);
+            return cleanNumber;
+        }
+        
         // Lista de códigos de país comúnmente soportados por Twilio
         const supportedCountries = {
             '1': 'Estados Unidos/Canadá',
@@ -314,6 +360,16 @@ class TwilioSMS {
             '61': 'Australia',
             '81': 'Japón'
         };
+        
+        // Validar formato de número (mínimo 10 dígitos después del código de país)
+        if (cleanNumber.length < 12) {
+            throw new Error('El número de teléfono debe tener al menos 10 dígitos después del código de país.');
+        }
+        
+        // Rechazar números 555 que no sean números mágicos de Twilio
+        if (cleanNumber.includes('555') && !twilioMagicNumbers[cleanNumber]) {
+            throw new Error('Los números 555 no son válidos para SMS reales. Use números mágicos de Twilio para pruebas: +15005550006 (válido) o números reales para producción.');
+        }
         
         // Advertencia para México y otros países que pueden requerir configuración especial
         if (countryCode === '52') {
@@ -390,6 +446,21 @@ class TwilioSMS {
             return data;
         } catch (error) {
             console.error('Error enviando SMS:', error);
+            
+            // Detectar errores de números inválidos y mostrar números de prueba
+            if (error.message.includes('Invalid \'To\' Phone Number') || 
+                error.message.includes('Los números 555 no son válidos') ||
+                error.message.includes('Unable to create record: Invalid')) {
+                
+                this.showError('❌ Número de teléfono inválido. Consulte los números de prueba disponibles.');
+                
+                // Mostrar números de prueba después de un breve delay
+                setTimeout(() => {
+                    this.showTestNumbers();
+                }, 1500);
+                
+                throw error;
+            }
             
             // Detectar errores específicos de permisos geográficos
             if (error.message.includes('Permission to send an SMS has not been enabled for the region')) {

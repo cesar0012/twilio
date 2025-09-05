@@ -318,6 +318,16 @@ class TwilioApp {
             });
         }
         
+        // Botón de números de prueba
+        const testNumbersBtn = document.getElementById('testNumbersBtn');
+        if (testNumbersBtn) {
+            testNumbersBtn.addEventListener('click', () => {
+                if (window.twilioSMS && typeof window.twilioSMS.showTestNumbers === 'function') {
+                    window.twilioSMS.showTestNumbers();
+                }
+            });
+        }
+        
         // Botón de enviar SMS
         const sendSmsBtn = document.getElementById('sendSmsBtn');
         if (sendSmsBtn) {
