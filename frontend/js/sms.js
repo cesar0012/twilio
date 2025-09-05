@@ -310,7 +310,16 @@ class TwilioSMS {
                 throw new Error('No se encontraron números de teléfono');
             }
             
-            const fromNumber = userNumbers[0]; // Usar el primer número disponible
+            // Filtrar números que tengan capacidad SMS
+            const smsCapableNumbers = userNumbers.filter(number => 
+                number.capabilities && number.capabilities.sms === true
+            );
+            
+            if (smsCapableNumbers.length === 0) {
+                throw new Error('No se encontraron números de teléfono con capacidad SMS. Verifique que sus números de Twilio tengan habilitada la funcionalidad SMS.');
+            }
+            
+            const fromNumber = smsCapableNumbers[0].phoneNumber; // Usar el primer número con capacidad SMS
             
             // Preparar datos para el envío
             const smsData = {
