@@ -236,7 +236,7 @@ def send_sms():
 @app.route('/messages', methods=['POST'])
 def get_messages():
     """
-    Obtiene los mensajes SMS de Twilio
+    Obtiene los mensajes SMS bidireccionales entre dos números específicos
     """
     try:
         print("[DEBUG] Recibida solicitud de mensajes")
@@ -245,25 +245,42 @@ def get_messages():
         # Extraer credenciales del request
         account_sid = data.get('accountSid')
         auth_token = data.get('authToken')
-        phone_number = data.get('phoneNumber')
+        contact_number = data.get('phoneNumber')  # Número del contacto
+        user_number = data.get('userNumber')      # Número del usuario
         
         # Validar que las credenciales estén presentes
-        if not all([account_sid, auth_token]):
-            print("[ERROR] Faltan credenciales requeridas")
-            return jsonify({'error': 'Faltan credenciales requeridas'}), 400
+        if not all([account_sid, auth_token, contact_number]):
+            print("[ERROR] Faltan credenciales o número de contacto requeridos")
+            return jsonify({'error': 'Faltan credenciales o número de contacto requeridos'}), 400
         
         # Crear cliente de Twilio
         client = Client(account_sid, auth_token)
         
-        # Obtener mensajes
-        messages = client.messages.list(
-            limit=50,
-            to=phone_number if phone_number else None
-        )
+        # Obtener TODOS los mensajes recientes y filtrar localmente
+        all_messages = client.messages.list(limit=200)
+        
+        # Filtrar mensajes bidireccionales entre user_number y contact_number
+        filtered_messages = []
+        for message in all_messages:
+            # Incluir mensajes donde:
+            # 1. El usuario envió al contacto (from=user_number, to=contact_number)
+            # 2. El contacto envió al usuario (from=contact_number, to=user_number)
+            if user_number:
+                # Si tenemos el número del usuario, filtrar bidireccional
+                if ((message.from_ == user_number and message.to == contact_number) or
+                    (message.from_ == contact_number and message.to == user_number)):
+                    filtered_messages.append(message)
+            else:
+                # Si no tenemos el número del usuario, incluir todos los mensajes del contacto
+                if message.from_ == contact_number or message.to == contact_number:
+                    filtered_messages.append(message)
+        
+        # Ordenar por fecha (más antiguos primero)
+        filtered_messages.sort(key=lambda x: x.date_created or '', reverse=False)
         
         # Formatear la respuesta
         messages_data = []
-        for message in messages:
+        for message in filtered_messages:
             messages_data.append({
                 'sid': message.sid,
                 'from': message.from_,
@@ -271,10 +288,11 @@ def get_messages():
                 'body': message.body,
                 'status': message.status,
                 'direction': message.direction,
+                'timestamp': message.date_created.isoformat() if message.date_created else None,
                 'dateCreated': message.date_created.isoformat() if message.date_created else None
             })
         
-        print(f"[DEBUG] Se encontraron {len(messages_data)} mensajes")
+        print(f"[DEBUG] Se encontraron {len(messages_data)} mensajes para la conversación {contact_number}")
         
         return jsonify({
             'messages': messages_data,
@@ -290,7 +308,7 @@ def get_messages():
 @app.route('/conversations', methods=['POST'])
 def get_conversations():
     """
-    Obtiene las conversaciones SMS agrupadas por contacto
+    Obtiene las conversaciones SMS agrupadas por contacto, filtradas por el número del usuario
     """
     try:
         print("[DEBUG] Recibida solicitud de conversaciones")
@@ -299,6 +317,9 @@ def get_conversations():
         # Extraer credenciales del request
         account_sid = data.get('accountSid')
         auth_token = data.get('authToken')
+        user_number = data.get('userNumber')  # Número del usuario para filtrar
+        
+        print(f"[DEBUG] Datos recibidos - User Number: {user_number}")
         
         # Validar que las credenciales estén presentes
         if not all([account_sid, auth_token]):
@@ -308,15 +329,36 @@ def get_conversations():
         # Crear cliente de Twilio
         client = Client(account_sid, auth_token)
         
-        # Obtener todos los mensajes recientes (últimos 100)
-        messages = client.messages.list(limit=100)
+        # Obtener todos los mensajes recientes (últimos 200 para mejor cobertura)
+        all_messages = client.messages.list(limit=200)
+        
+        # Filtrar mensajes que involucren al número del usuario
+        user_messages = []
+        for message in all_messages:
+            if user_number:
+                # Incluir mensajes donde el usuario está involucrado
+                if message.from_ == user_number or message.to == user_number:
+                    user_messages.append(message)
+            else:
+                # Si no se proporciona user_number, incluir todos (comportamiento anterior)
+                user_messages.append(message)
+        
+        print(f"[DEBUG] Mensajes filtrados para usuario {user_number}: {len(user_messages)} de {len(all_messages)} totales")
         
         # Agrupar mensajes por contacto
         conversations = {}
-        for message in messages:
-            # Determinar el contacto (el número que no es nuestro)
-            contact = message.from_ if message.direction == 'inbound' else message.to
+        for message in user_messages:
+            # Determinar el contacto (el número que no es el del usuario)
+            if user_number:
+                contact = message.from_ if message.from_ != user_number else message.to
+            else:
+                # Comportamiento anterior si no hay user_number
+                contact = message.from_ if message.direction == 'inbound' else message.to
             
+            # Evitar conversaciones consigo mismo
+            if contact == user_number:
+                continue
+                
             if contact not in conversations:
                 conversations[contact] = {
                     'contact': contact,
@@ -341,7 +383,7 @@ def get_conversations():
         conversations_list = list(conversations.values())
         conversations_list.sort(key=lambda x: x['lastMessageDate'] or '', reverse=True)
         
-        print(f"[DEBUG] Se encontraron {len(conversations_list)} conversaciones")
+        print(f"[DEBUG] Se encontraron {len(conversations_list)} conversaciones para usuario {user_number}")
         
         return jsonify({
             'conversations': conversations_list,

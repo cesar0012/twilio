@@ -121,12 +121,22 @@ class TwilioSMS {
      */
     async loadConversations() {
         try {
-            // Obtener credenciales
-            const credentials = window.twilioCredentials.getForBackend();
+            // Obtener credenciales completas (incluyendo Auth Token para SMS)
+            const credentials = window.twilioCredentials.load();
             if (!credentials) {
                 console.warn('No hay credenciales disponibles para cargar conversaciones');
                 return;
             }
+            
+            // Obtener el número de Twilio del usuario
+            const userNumbers = await this.getUserPhoneNumbers(credentials);
+            if (userNumbers.length === 0) {
+                console.warn('No se encontraron números de teléfono del usuario');
+                return;
+            }
+            
+            const userNumber = userNumbers[0].phoneNumber; // Usar el primer número disponible
+            console.log(`[SMS] Cargando conversaciones para usuario: ${userNumber}`);
             
             // Obtener conversaciones del backend
             const response = await fetch(`${this.backendUrl}/conversations`, {
@@ -136,7 +146,8 @@ class TwilioSMS {
                 },
                 body: JSON.stringify({
                     accountSid: credentials.accountSid,
-                    authToken: credentials.authToken
+                    authToken: credentials.authToken,
+                    userNumber: userNumber  // Agregar número del usuario para filtrado
                 })
             });
             
@@ -569,13 +580,16 @@ class TwilioSMS {
                 throw new Error('No se encontraron números de teléfono');
             }
             
-            const userNumber = userNumbers[0]; // Usar el primer número disponible
+            const userNumber = userNumbers[0].phoneNumber; // Usar el primer número disponible
+            
+            console.log(`[SMS] Obteniendo mensajes para contacto: ${contactNumber}, usuario: ${userNumber}`);
             
             // Preparar datos para la consulta
             const messagesData = {
                 accountSid: credentials.accountSid,
                 authToken: credentials.authToken,
-                phoneNumber: contactNumber // El backend espera 'phoneNumber'
+                phoneNumber: contactNumber, // El backend espera 'phoneNumber'
+                userNumber: userNumber  // Agregar número del usuario para filtrado bidireccional
             };
             
             // Obtener mensajes del backend
@@ -593,7 +607,7 @@ class TwilioSMS {
             }
             
             const data = await response.json();
-            console.log('Mensajes obtenidos:', data);
+            console.log(`[SMS] Mensajes obtenidos para conversación ${contactNumber}:`, data);
             
             // Actualizar la UI con los mensajes
             this.displayMessages(data.messages || []);
@@ -640,14 +654,21 @@ class TwilioSMS {
     createMessageElement(message) {
         const isOutbound = message.direction === 'outbound';
         const alignment = isOutbound ? 'justify-content-end' : 'justify-content-start';
-        const bgClass = isOutbound ? 'bg-primary text-white' : 'bg-light';
+        const bgClass = isOutbound ? 'bg-primary text-white' : 'bg-light text-dark';
+        const textClass = isOutbound ? 'text-white-50' : 'text-muted';
+        
+        // Usar timestamp o dateCreated como fallback
+        const messageTime = message.timestamp || message.dateCreated;
         
         return `
             <div class="d-flex mb-3 ${alignment}">
-                <div class="card ${bgClass}" style="max-width: 70%;">
+                <div class="card ${bgClass}" style="max-width: 70%; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <div class="card-body py-2 px-3">
                         <p class="mb-1">${message.body}</p>
-                        <small class="text-muted">${this.formatTimestamp(message.timestamp)}</small>
+                        <small class="${textClass}">
+                            ${this.formatTimestamp(messageTime)}
+                            ${isOutbound ? ' • Enviado' : ' • Recibido'}
+                        </small>
                     </div>
                 </div>
             </div>
